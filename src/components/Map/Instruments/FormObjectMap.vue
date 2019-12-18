@@ -1,9 +1,9 @@
 <template>
-    <div >
-        <table border='0' class='fullSize' >
+    <div>
+        <table border='0' class='fullSize formObjMap' >
             <tr>
                 <td>
-                    <md-field class="full">
+                    <md-field class="fullSize">
                         <md-input 
                             v-model='curNameObject'
                             :placeholder='$lang.messages.holderInfo'
@@ -12,15 +12,12 @@
                     </md-field>
                 </td>
                 <td>
-                    <md-datepicker 
-                        v-model='curDateObj'
-                        :md-immediately='true'
-                    />
+                    <md-datepicker v-model='curDateObj' :md-immediately='true' />
                 </td>
             </tr>
             <tr>
                 <td colspan='2' >
-                    <md-field class="full" >
+                    <md-field class="fullSize" >
                         <md-textarea 
                             v-model='curCommentObject'
                             :placeholder='$lang.messages.holderComment'
@@ -30,7 +27,7 @@
                 </td>
             </tr>
         </table>
-        <tbl2Buttons 
+        <tbl2Buttons
             :secButName='$lang.messages.nameCleanFormBut'
             @secButClick='setCleanObjectForm' >
         </tbl2Buttons>
@@ -38,60 +35,56 @@
 </template>
 
 <script>
-    
     import { mapMutations, mapGetters } from 'vuex'
-    
     import tbl2Buttons from 'components/Additional/BottomTable2Buttons'
-
     export default {
-
         components : { tbl2Buttons },
-
         computed: {
-        
-            ...mapGetters(['getAllMapState']),
-
+            ...mapGetters(['getPointData']),
             curDateObj : {
-                get(){
-                    return this.getAllMapState.dateObject;
+                get() {
+                    return this.getPointData.dateObject;
                 },
-                set(inValue){
+                set(inValue) {
                     this.setCurrentMapValue({ field : 'dateObject', value : inValue });
                 }
             },
-
             curNameObject : {
-
-                get(){
-                    return this.getAllMapState.nameObject;
+                get() {
+                    return this.getPointData.nameObject;
                 },
-                set(inValue){
+                set(inValue) {
                     this.setCurrentMapValue({ field : 'nameObject', value : inValue });
                 }
             },
-
             curCommentObject : {
-
-                get(){
-                    return this.getAllMapState.commentObject;
+                get() {
+                    return this.getPointData.commentObject;
                 },
-                set(inValue){
+                set(inValue) {
                     this.setCurrentMapValue({ field : 'commentObject', value : inValue });
                 }
             }
         },
-
         methods : {
-
             ...mapMutations(['setCleanObjectForm', 'setCurrentMapValue'])
         }
     }
 </script>
 
 <style >
-
+    .formObjMap .md-field {
+        width : 100%;
+        min-height : 48px;
+        margin : 4px 0 24px;
+        padding-top : 16px;
+        display : -webkit-box;
+        display : flex;
+        position : relative;
+        font-family : inherit;
+    }
     .md-datepicker-header {
-
-        display: none;
+        display : none;
     }
 </style>
+
