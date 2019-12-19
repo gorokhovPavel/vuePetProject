@@ -1,6 +1,6 @@
 <template>
     <md-button @click="$emit('click')" 
-        class='minMdButton md-card md-with-hover point' >
+        class='minMdButton md-card md-with-hover' >
             <slot/>
     </md-button>
 </template>
@@ -10,9 +10,7 @@
 </script>
 
 <style>
-
     .minMdButton {
-
         min-width : 10px;
     }
 </style>
