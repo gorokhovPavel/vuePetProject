@@ -1,16 +1,11 @@
 <template>
     <div v-if='flag' >
         <md-progress-bar md-mode="indeterminate" ></md-progress-bar>
-        <clip-loader class='preloader' :color="'#00338d'" :size='"100px"' />
-        <clip-loader class='preloader2' :color="'#fff'" :size='"98px"' />
     </div>
 </template>
 
 <script>
-    import { ClipLoader } from 'vue-spinner/dist/vue-spinner.min.js'
     export default {
-        
-        components : { ClipLoader  },
         props: ['flag'],
     }
 </script>
