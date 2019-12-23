@@ -1,188 +1,125 @@
 import lang from 'language/Translate'
 
 export default class BuildChart {
-    static addTwoDimGraph(inArr, distanseLine, stepLine, reportObject) {
-        let indexYarr = 0;
-    
-        let xArrForScale = inArr[0].map(x => {
-            indexYarr++;
-            return indexYarr * stepLine;
+
+    static addTwoDimGraph( inHeightsData, reportObject ) {
+
+        const { inArr, distanseLine, stepLine } = inHeightsData;
+        const firstArr = inArr.find(x=>x.array.length>0);
+        const xArrForScale = !firstArr ? [] : firstArr.array.map( (item, index)=> index * stepLine );
+        const traceArr = inArr.map( elem=> {
+            return {
+                y : elem.array,
+                x : xArrForScale,
+                fill : 'tozeroy',
+                type : 'scatter',
+                name : elem.name
+            }
         });
-    
-        let trace1 = {
-            y: inArr[0],
-            x: xArrForScale,
 
-            fill : 'tozeroy',
-            type : 'scatter',
-            name : lang.getMessages('mainLayerName')
-        };
-    
-        let trace2 = {
-            y: inArr[1],
-            x: inArr[1] ? xArrForScale : null,
-
-            fill: 'tonexty',
-            type: 'scatter',
-            name: lang.getMessages('addLayerName')
-        };
-    
-        let layout = {
-    
-            title: `${lang.getMessages('heightProfile')} ${distanseLine} , ${lang.getMessages('step')} : ${ stepLine.toFixed(1) } ${lang.getMessages('meter')}`,
-    
-            legend: {
-                x: 0,
-                y: -0.2,    
-                orientation: 'h',
-                traceorder: 'normal'
+        const layout = {
+            title : `${ lang.getMessages('heightProfile')} ${distanseLine} , ${lang.getMessages('step')} : ${ stepLine.toFixed(1) } ${lang.getMessages('meter') }`,
+            legend : {
+                x : 0,
+                y : -0.2,    
+                orientation : 'h',
+                traceorder  : 'normal'
             },
-    
             margin: {
-                l: 50,
-                r: 20,
-                b: 30,
-                t: 50
+                l : 50,
+                r : 20,
+                b : 30,
+                t : 50
             }
         };
     
-        if(!reportObject.isReport)
-            Plotly.newPlot('graphPlotChart', [trace1, trace2], layout, { displayModeBar: false });
+        if( reportObject )
+            Plotly.newPlot('graphPlotChart_' + reportObject.id, traceArr, layout, { displayModeBar: false });
         else
-            Plotly.newPlot('graphPlotChart_' + reportObject.id, [trace1, trace2], layout, { displayModeBar: false });
+            Plotly.newPlot('graphPlotChart', traceArr, layout, { displayModeBar: false });
     }
 
-    //test
-    static addTwoDimGraphTest(inArr, distanseLine, stepLine) {
+    //3d volume
+    static addThreeDimGraph( inHeightsData, reportObject ) {
 
-        let indexYarr = 0;
-    
-        let xArrForScale = inArr[0].map(x => {
-    
-            indexYarr++;
-            return indexYarr * stepLine;
-        });
-    
-        let trace1 = {
-    
-            y: inArr[0],
-            x: xArrForScale,
-    
-            fill : 'tozeroy',
-            type : 'scatter',
-            name : lang.getMessages('mainLayerName')
-        };
-    
-        let trace2 = {
-    
-            y: inArr[1],
-            x: inArr[1] ? xArrForScale : null,
-    
-            fill: 'tonexty',
-            type: 'scatter',
-            name: lang.getMessages('addLayerName')
-        };
-    
-        let layout = {
-    
-            title: `${lang.getMessages('heightProfile')} ${distanseLine} , ${lang.getMessages('step')} : ${ stepLine.toFixed(1) } ${lang.getMessages('meter')}`,
-    
-            legend: {
-    
-                x: 0,
-                y: -0.2,    
-                orientation: 'h',
-                traceorder: 'normal'
-            },
-    
-            margin: {
-    
-                l: 50,
-                r: 20,
-                b: 30,
-                t: 50
-            }
-        };
-    
-        Plotly.newPlot('graphPlotChart', [trace1, trace2], layout, { displayModeBar: false } );
-    }
-
-    //3d
-    static addThreeDimGraph( inArr, inPolygonInfo, reportObject ){
-
+        const { inArr, inPolygonInfo } = inHeightsData;
         document.querySelector('#graphChartInfo').innerHTML=inPolygonInfo[1];
-
-        let layout = {
-
-            title      : inPolygonInfo[0], 
-
+        const layout = {
+            title : inPolygonInfo[0], 
             showlegend : false,
-            autosize   : true,
-
+            autosize : true,
             margin : {
-
-                l : 40,
-                r : 0,
+                l : 10,
+                r : 10,
                 b : 10,
-                t : 25
+                t : 35
             }
         };
 
-        let data_z1 = { x:0, z: inArr[0], type: 'surface', name: lang.getMessages('mainLayerName'), showscale: false };
-        let data_z2 = { x:0, z: inArr[1], type: 'surface', name: lang.getMessages('addLayerName'),  showscale: false };
+        const data_z1 = { x:0, z: inArr[0], type: 'surface', showscale: false };
+        const data_z2 = { x:0, z: inArr[1], type: 'surface', showscale: false };
         
-        if(!reportObject.isReport)
-            Plotly.newPlot('graphPlotChart', [data_z1, data_z2], layout, { displayModeBar: false } );
+        if( reportObject )
+            Plotly.newPlot('graphPlotChart_' + reportObject.id, [data_z1, data_z2], layout, { displayModeBar: false } );    
         else
-            Plotly.newPlot('graphPlotChart_' + reportObject.id, [data_z1, data_z2], layout, { displayModeBar: false } );
+            Plotly.newPlot('graphPlotChart', [data_z1, data_z2], layout, { displayModeBar: false } );
     }
 
-    //sdvs
-    static setResstartChart(inMyDivObj){
+    //2d volume
+    static addTwoDimVoluemGraph( inArr, reportObject ) {
 
-        Plotly.redraw(inMyDivObj);
-    }
-
-    static addTwoDimGraphTest(inArr, distanseLine, stepLine) {
-
-        let indexYarr = 0;
-    
-        let xArrForScale = inArr.map(x => {
-    
-            indexYarr++;
-            return indexYarr;
+        //Создаем еще массив, прибавляем на старт нулевое значение
+        let upInArr = [ { volume : 0, dataVolume : '01.01.2017' }, ...inArr ];
+        //Модифицируем входной, чтобы исключить график с 1ой точкой
+        inArr = inArr.length === 1 ? upInArr : inArr;
+        //Добавляем 'аналитический' график, что показывает разницу с предыдущей величиной объема
+        upInArr = inArr.map( (item,index)=> {
+            return {
+                volume : ( index > 0 ) ? Math.abs( item.volume - inArr[index-1].volume ) : 0,
+                dataVolume : item.dataVolume
+            }
         });
-    
-        let trace1 = {
-    
-            y: inArr,
-            x: xArrForScale,
-    
-            type : 'scatter',
-            name : lang.getMessages('volume')
-        };
-    
-        let layout = {
-    
-            title: `${lang.getMessages('volumeHistory')} ${distanseLine}`,
-    
-            legend: {
-    
-                x: 0,
-                y: -0.2,    
-                orientation: 'h',
-                traceorder: 'normal'
+        const traceArr = [ inArr, upInArr ].map( (elem, index)=> {
+            return {
+                y : elem.map( x=>x.volume.toFixed(2) ),
+                x : elem.map( x=>x.dataVolume ),
+                type  : ( index === 0 ) ? 'scatter' : 'bar',
+                marker: ( index === 0 ) ? { color : 'rgb(26, 118, 255)' } : { color : 'rgb(158,202,225)' },
+                name : ( index === 0 ) ? lang.getMessages('relToZero') : lang.getMessages('relToStartWork')
+            }
+        });
+        const layout = {
+            title : `${lang.getMessages('volumeHistory')} : `,
+            yaxis : { title: lang.getMessages('volumeDim') },
+            legend : {
+                x : 0,
+                y : 1,
+                traceorder : 'normal',
+                font : {
+                  family : 'sans-serif',
+                  size : 12,
+                  color : '#000'
+                },
+                bgcolor : '#E2E2E2',
+                bordercolor : '#FFFFFF',
+                borderwidth : 2
             },
-    
-            margin: {
-    
-                l: 50,
-                r: 20,
-                b: 30,
-                t: 50
+            margin : {
+                l : 65,
+                r : 45,
+                b : inArr.length > 5 ? 80 : 45,
+                t : 60
             }
         };
     
-        Plotly.newPlot('graphPlotChart', [trace1], layout, { displayModeBar: false } );
+        if( reportObject )
+            Plotly.newPlot('graphPlotChart_' + reportObject.id, traceArr, layout, { displayModeBar: false });    
+        else
+            Plotly.newPlot('graphPlotChart', traceArr, layout, { displayModeBar: false });
+    }
+
+    //redraw graph
+    static setResstartChart(inMyDivObj) {
+        Plotly.redraw(inMyDivObj);
     }
 }
