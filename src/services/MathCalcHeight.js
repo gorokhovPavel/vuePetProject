@@ -1,104 +1,111 @@
-import * as turf    from '@turf/turf'
-import geolib       from 'geolib'
+import * as turf from '@turf/turf'
+import geolib from 'geolib'
+import lang from 'language/Translate'
+import buildChart from 'services/BuildChart'
+import ext from 'services/AddExtension'
+import api from 'api/apiConfig'
 
-import lang         from 'language/Translate'
-import buildChart   from 'services/BuildChart'
-import ext          from 'services/AddExtension'
+export default class MathCalcHeight {
 
-import api          from 'api/apiConfig'
-
-export default class MathCalcHeight{
-
-    constructor( inModelMap, inIndMain, inIndAdd ){
-
+    constructor( inModelMap, inIndMain, inIndAdd, inSelectedDataCheckArr ) {
+        this.dxVal = 0;
         this.mapModel = inModelMap;
-        this.dxVal    = 0;
-        this.indMain  = inIndMain; 
-        this.indAdd   = inIndAdd;
+        this.indMain = inIndMain; 
+        this.indAdd = inIndAdd;
+        this.selectedDataCheckArr = inSelectedDataCheckArr ;
     }
 
-    async getHeightsLine(clickDraw, isReport = false){
-
-        const lineWidth  = this.getTotalDistanceStr( clickDraw, false );
-        const lineStr    = this.getTotalDistanceStr( clickDraw, true );
-       
-        return await this._lineHeights( clickDraw, lineWidth, lineStr, isReport );
+    async getHeightsLine( clickDraw, isReport, isMoreOneLayer = true ) {
+        const lineWidth = this.getTotalDistanceStr( clickDraw, false );
+        const lineStr = this.getTotalDistanceStr( clickDraw, true );
+        return await this._lineHeights( clickDraw, lineWidth, lineStr, isReport, isMoreOneLayer );
     }
-      
-    async getVolume(inFeature, isReport = false){
 
+    async getVolume( inFeature, isReport = false, isMoreOneLayer = true, useThreeDCheck = true ) {
         //Площадь и периметр полигона
-        let inArea            = this.getTotalDistanceStr(inFeature, false) * 1000;
-        let perimetrAndSquare = this.getTotalDistanceStr(inFeature, true);
+        let finalRes = null;
+        const inArea = this.getTotalDistanceStr( inFeature, false ) * 1000;
+        const perimetrAndSquare = this.getTotalDistanceStr( inFeature, true );
+        const reportObject = isReport ? { id : inFeature.id, isReport } : null;
 
         //Генерим точность, исходя из площади объекта
-        let volumeAccurMeter = Math.sqrt(inArea) / 10;
+        let volumeAccurMeter = Math.sqrt( inArea ) / 10;
         volumeAccurMeter = volumeAccurMeter < 0.5 ? 0.5 : volumeAccurMeter;
 
         //Получаем координаты граней многоугольника, удаляем одну лишнюю, что зачем-то создается в geometry
         let arrCoordPoint = inFeature.geometry.coordinates[0];
-        arrCoordPoint.splice(0, 1);
+        arrCoordPoint.splice( 0, 1 );
 
-        let useThreeDCheck = true;
+        //Получаем все координаты для дальнейших расчетов, смотрим на все слои 
+        const allPointsObj = this._getAllPoint( arrCoordPoint, volumeAccurMeter, useThreeDCheck );
+        const allVolumeData = await this._getHeightsAllLayersVolume( allPointsObj, isMoreOneLayer, useThreeDCheck );
 
-        //Получаем все координаты для дальнейших расчетов
-        let allPointsObj   = this._getAllPoint(arrCoordPoint, volumeAccurMeter, useThreeDCheck);
+        if( useThreeDCheck ) {
+            //Вытаскиваем периметр и площадь из входной строки
+            const arrPS = perimetrAndSquare.split(';');
+            const perimetrForDb = arrPS[0];
+            const squareForDb = arrPS[1];
+            
+            let volumeNew = 0;
+            let volumeOld = 0;
+            let volumeStrNew = '';
+            let volumeStrOld = '';
+            let volumeDiff = 0;
+            let polygonInfo = '';
+            let arrHeightsFor3dAll = [];
 
-        //Вычисление высот по координатам в старом и новом полигонах
-        let arrHeightNew = await this._getHeights(allPointsObj.arrGlobalInterPoint, true,  'volume', allPointsObj.pointsPerLine);
-        let arrHeightOld = await this._getHeights(allPointsObj.arrGlobalInterPoint, false, 'volume', allPointsObj.pointsPerLine);
+            if( isMoreOneLayer && allVolumeData.length>1 ) {
+                volumeNew = allVolumeData[1].volume;
+                volumeOld = allVolumeData[0].volume;
+                volumeStrNew = allVolumeData[1].volumeStr;
+                volumeStrOld = allVolumeData[0].volumeStr;
+                volumeDiff = this._setLineToStr((volumeNew - volumeOld), 1);
 
-        //Парсинг предыдущих двумерных массивов в одномерные для 3д
-        let arrHeightsFor3dNew = this._getPartHeights(allPointsObj.partArrPoint, arrHeightNew);
-        let arrHeightsFor3dOld = this._getPartHeights(allPointsObj.partArrPoint, arrHeightOld);
+                //Общая информация об объекте
+                polygonInfo = [
+                    `${perimetrForDb}, ${squareForDb}`,
+                    `${ !volumeStrNew ? "" : `${lang.getMessages('volumeMainLayer')} : ${volumeStrNew} <br/>` }
+                     ${ !volumeStrOld ? "" : `${lang.getMessages('volumeAddLayer')}  : ${volumeStrOld} <br/>` }
+                     ${ !volumeDiff ? "" : `${lang.getMessages('amountChangesVolumes')} : ${volumeDiff}` }`
+                ];
+            } else {
+                volumeStrNew = allVolumeData[0].volumeStr;
+                polygonInfo = [
+                    `${perimetrForDb}, ${squareForDb}`,
+                    `${ !volumeStrNew ? "" : `${lang.getMessages('volumeMainLayer')} : ${volumeStrNew} <br/>` }`
+                ];
+            }
+            arrHeightsFor3dAll = allVolumeData.map(x=>x.arrHeightsFor3d);
+            
+            const heightsData = {
+                inArr : arrHeightsFor3dAll, 
+                inPolygonInfo : polygonInfo,
+            }
+            
+            buildChart.addThreeDimGraph( heightsData, reportObject );
+            finalRes = {
+                perimetr : perimetrForDb,
+                area : squareForDb,
+                totalVolume : volumeNew > 1000000000 ? ( volumeNew / 1000000000 ).toFixed(0) : volumeNew.toFixed(0),
+                averageVolume : (( volumeNew + volumeOld ) / 2).toFixed(0),
+                heightsData : heightsData
+            };
+        } else {
+            buildChart.addTwoDimVoluemGraph( allVolumeData, reportObject );
+            finalRes = {
+                heightsData : allVolumeData
+            };
+        }
 
-        //Тянем объем полигона старого и нового слоев, а также фирмируем строки с инфой и разницу объемов 
-        let volumeNew = this._getNumericalIntVolume(this.dxVal, arrHeightsFor3dNew);
-        let volumeOld = parseInt(this._getNumericalIntVolume(this.dxVal, arrHeightsFor3dOld), 0);
-
-        let volumeStrNew = this._setLineToStr(volumeNew, 1);
-        let volumeStrOld = this._setLineToStr(volumeOld, 1);
-
-        let volumeD = this._setLineToStr((volumeNew - volumeOld), 1);
-
-        //Вытаскиваем периметр и площадь из входной строки
-        let perimetrForDb = '';
-        let squareForDb = '';
-
-        let arrPS     = perimetrAndSquare.split(';');
-        perimetrForDb = arrPS[0];
-        squareForDb   = arrPS[1];
-
-        //Общая информация об объекте
-        let polygonInfo = [
-
-            `${perimetrForDb}, ${squareForDb}`,
-
-            `${ !volumeStrNew ?  "" : `${lang.getMessages('volumeMainLayer')} : ${volumeStrNew} <br/>` }
-             ${ !volumeStrOld ?  "" : `${lang.getMessages('volumeAddLayer')}  : ${volumeStrOld} <br/>` }
-             ${ !volumeD ?       "" : `${lang.getMessages('amountChangesVolumes')} : ${volumeD}` }`
-        ];
-
-        let arrHeightsFor3dAll = null;
-        if (useThreeDCheck)
-            arrHeightsFor3dAll = [ arrHeightsFor3dNew, arrHeightsFor3dOld ];
-
-        const reportObject = { id: inFeature.id, isReport };
-        buildChart.addThreeDimGraph( arrHeightsFor3dAll, polygonInfo, reportObject );
-      
-        const averageVolume = (volumeNew + volumeOld) / 2;
-      
-        return { perimetr: this._getPerimetr(inFeature), 
-                 area: this._getArea(inFeature), 
-                 totalVolume: volumeNew > 1000000000 ? 
-                              (volumeNew / 1000000000).toFixed(0) : volumeNew.toFixed(0),
-                 averageVolume: averageVolume.toFixed(0) };
+        finalRes.useThreeDCheck = useThreeDCheck;
+        return finalRes;
     }
 
     //Общая формула для вычисления объема
-    _getNumericalIntVolume(dx, array3D) {
+    _getNumericalIntVolume( dx, array3D ) {
+
         if (!array3D)
-            return;
+            return -1;
 
         //Здесь, в отличие от вышеуказанного вычисления интеграла,
         //разбиваем многоугольник на мини-квадраты и складываем V каждого
@@ -107,7 +114,8 @@ export default class MathCalcHeight{
         let resVolume = 0;
         array3D.forEach( arr => {
             arr.forEach( item => {
-                resVolume += (dx * item);
+                if( item )
+                    resVolume += (dx * item);
             });
         });
 
@@ -116,56 +124,54 @@ export default class MathCalcHeight{
 
     //Преобразование одномерного массива в двумерный, разбитый по частям для 3д графика 
     _getPartHeights(partArr, allArrHeight) {
+
         if (!allArrHeight)
             return;
 
         let testHeights = [];
         let testHeightsIndex = 0;
 
-        for (let i = 0; i < partArr.length; i++) {
+        for ( let i = 0; i < partArr.length; i++ ) {
             let partHeights = [];
             for (let j = 0; j < partArr[i].length; j++) {
                 partHeights.push(allArrHeight[testHeightsIndex]);
                 testHeightsIndex++;
             }
-
             testHeights.push(partHeights);
         }
 
         return testHeights;
     }
 
-    getTotalDistanceStr(objLine, isTypeStr){
+    getTotalDistanceStr( objDraw, isTypeStr ) {
         
         let outStr = null;
-
-        if (objLine.geometry.type == 'LineString') {
-            
-            let lineDistance = turf.lineDistance(objLine);
-            
+        if ( objDraw.geometry.type === 'LineString' ) {
+            let lineDistance = turf.lineDistance(objDraw);
             if (isTypeStr)
                 outStr = `${lang.getMessages('width')} : ${ this._setLineToStr(lineDistance, 2)}`;
             else
                 outStr = lineDistance;
-        }
-        else {
+        } else if ( objDraw.geometry.type === 'Polygon' ) {
 
-            let perimetr = turf.lineDistance(turf.lineString(objLine.geometry.coordinates[0]));
+            let perimetr = turf.lineDistance(turf.lineString(objDraw.geometry.coordinates[0]));
             let strPerimetr = `${lang.getMessages('perimetr')} : ${ this._setLineToStr(perimetr, 2)} ;`;
 
-            let area = turf.area(objLine) / 1000;
+            let area = turf.area( objDraw ) / 1000;
             let strArea = area != 0 ? `${lang.getMessages('square')} : ${ this._setLineToStr(area, 3)}<sup>2</sup>` : '';
 
             if (isTypeStr)
                 outStr = strPerimetr + strArea;
             else
                 outStr = area;
+        } else {
+            outStr = '-1';
         }
 
         return outStr;
     }
 
-    getStartCoord( thisDrawItem ){
+    getStartCoord( thisDrawItem ) {
         const resCoord = 
             (thisDrawItem.geometry.coordinates[0][0] != undefined && thisDrawItem.geometry.coordinates[0][0].length == 2) ?
 
@@ -183,29 +189,27 @@ export default class MathCalcHeight{
 
         let startCoordInLineArr = [];
         let finCoordInLineArr = [];
-
         let extremData = this._getExtremCoordForVolume(inArrCoordPoint);
 
         //Узнаем длину квадрата, по точкам которого будет строиться 3д график
         let widthOfSquare = turf.lineDistance(turf.lineString([extremData[0], extremData[3]]));
-
         let isSquarePolygon = inUseThreeDCheck;
         startCoordInLineArr = this._getArrLinePoints([extremData[0], extremData[1]], inVolumeAccurMeter, widthOfSquare, isSquarePolygon);
         finCoordInLineArr   = this._getArrLinePoints([extremData[3], extremData[2]], inVolumeAccurMeter, widthOfSquare, isSquarePolygon);
 
         //Создаем и заполняем массивы, что подаем на выход 
         let arrPointsForVolume  = [];
-        let arrPointsFor3d      = [];
+        let arrPointsFor3d = [];
         let arrLinePontsForTest = [];
-        let arrInterPoint       = [];
+        let arrInterPoint = [];
 
         //Ищем точки пересечения, ч1 => Сперва берем все линии из входного многоугольника
         let arrTurfLs = this._getArrLineStrForTurfIntersect(inArrCoordPoint);
 
-        for (let i = 0; i < startCoordInLineArr.length; i++) {
+        for ( let i = 0; i < startCoordInLineArr.length; i++ ) {
+
             //Точки границ по разрезам 3д-квадрата для тестовых линий
             arrLinePontsForTest.push(startCoordInLineArr[i], finCoordInLineArr[i]);
-
             //Текущая линия разреза по 3д квадрату, слева-направо
             let nextTurfLine = turf.lineString([startCoordInLineArr[i], finCoordInLineArr[i]]);
             let curCoordStEnd = [];
@@ -244,7 +248,6 @@ export default class MathCalcHeight{
 
         //Создаем финальное дерево объектов, что имеет в себе эти массивы и подаем на выход
         let allPointsData = {
-
             partArrPoint: arrPointsFor3d,
             arrGlobalInterPoint: arrPointsForVolume,
             arrLine: arrLinePontsForTest,
@@ -255,19 +258,16 @@ export default class MathCalcHeight{
     }
 
     //Создаем массив из объектов turfLineStr по каждой стороне входного многоугольника
-    _getArrLineStrForTurfIntersect(inArrCoordOfPolygon) {
+    _getArrLineStrForTurfIntersect( inArrCoordOfPolygon ) {
 
         //Добавляем к входному набору точек еще и первую от этого самого набора, дабы замкнуть многоугольник
         let inArrCoordOfPolygonU = inArrCoordOfPolygon;
         inArrCoordOfPolygonU.push([inArrCoordOfPolygon[0][0], inArrCoordOfPolygon[0][1]]);
         let turfLsArr = [];
 
-        for (let i = 0; i < inArrCoordOfPolygonU.length; i++) {
-
+        for ( let i = 0; i < inArrCoordOfPolygonU.length; i++ ) {
             if (inArrCoordOfPolygonU[i + 1]) {
-
                 let turfLs = turf.lineString([inArrCoordOfPolygonU[i], inArrCoordOfPolygonU[i + 1]]);
-
                 turfLsArr.push(turfLs);
             }
         }
@@ -285,7 +285,6 @@ export default class MathCalcHeight{
         let arrY = []; //latitude
 
         for (let i = 0; i < inArrCoord.length; i++) {
-
             arrX.push(inArrCoord[i][0]);
             arrY.push(inArrCoord[i][1]);
         }
@@ -330,37 +329,115 @@ export default class MathCalcHeight{
     }
 
     //Здесь делаем разрез высот
-    async _lineHeights(objPoints, widthLine, strLineWidth, isReport) {
+    async _lineHeights( objPoints, widthLine, strLineWidth, isReport, isMoreOneLayer ) {
 
+        const finalRes = {};
         const arrCoordPoint = objPoints.geometry.coordinates;
-        const arrPoint = this._getArrLinePoints(arrCoordPoint, null, widthLine, false);
 
-        const arrHeightNew = await this._getHeights(arrPoint, true,  'line', arrPoint.length);
-        const arrHeightOld = await this._getHeights(arrPoint, false, 'line', arrPoint.length);
+        if( widthLine === '-1' ) {
+            let currIndex = 0;
+            const  upArrCoordPoint = [[ ...arrCoordPoint, null, 0 ]];
+            this._getAllSelectedLayers( false, true ).forEach((x,index)=> { if( x ) currIndex = index; });
+            const currHeights = await this._getHeights( upArrCoordPoint, currIndex, 'line', 0 );
+            finalRes.heightsData = { 
+                inArr : currHeights
+            }
+        } else {
+            const arrPoint = this._getArrLinePoints( arrCoordPoint, null, widthLine, false );
+            const arrHeight = await this._getHeightsAllLayersLine( arrPoint, isMoreOneLayer );
+            const reportObject = isReport ? { id: objPoints.id, isReport } : null;
+            const dxVal = this.dxVal;
 
-        const arrHeight = [arrHeightNew, arrHeightOld];
-        const reportObject = { id: objPoints.id, isReport };
-    
-        let upMathArrHeight = arrHeight.map( x => this._getMathDataFromArr(x));
-
-        buildChart.addTwoDimGraph(arrHeight, strLineWidth, this.dxVal, reportObject);
-        
-        return upMathArrHeight;
+            finalRes.heightsData = { 
+                inArr : arrHeight, 
+                distanseLine : strLineWidth, 
+                stepLine : dxVal
+            }
+            
+            buildChart.addTwoDimGraph( finalRes.heightsData, reportObject );
+        }
+        return finalRes;
     }
 
-    _getMathDataFromArr(inArr){
+    //Смотрим на все слои и тянем высоты для линии
+    _getAllSelectedLayers( inIsMoreOneLayer, inUseThreeDCheck ) {
+
+        let startSelectedDataCheckArr = !inUseThreeDCheck ? 
+            this.selectedDataCheckArr : 
+            this.selectedDataCheckArr.map( ( item, index )=> ( index === this.indMain || index === this.indAdd ) );
+
+        let checkLayersArr = inIsMoreOneLayer ? 
+            startSelectedDataCheckArr :
+            startSelectedDataCheckArr.map( ()=> false );
+
+        checkLayersArr[this.indMain] = true;
+        return checkLayersArr;
+    }
+
+    //Тянем данные по всем старым слоям (Линии)
+    async _getHeightsAllLayersVolume( inArrPoint, inIsMoreOneLayer, inUseThreeDCheck ) {
+        
+        let arrAllVolume = [];
+        const checkLayersArr = this._getAllSelectedLayers( inIsMoreOneLayer, inUseThreeDCheck );
+
+        for ( let i = 0; i < checkLayersArr.length; i++ ) {
+            if( checkLayersArr[i] ) {
+                const arrHeightNew = await this._getHeights( inArrPoint.arrGlobalInterPoint, i, 'volume', inArrPoint.pointsPerLine );
+                //Парсинг предыдущих двумерных массивов в одномерные для 3д
+                const arrHeightsFor3dNew = this._getPartHeights( inArrPoint.partArrPoint, arrHeightNew );
+                //Тянем объем полигона старого и нового слоев, а также формируем строки с инфой и разницу объемов 
+                const volumeNew = this._getNumericalIntVolume( this.dxVal, arrHeightsFor3dNew );
+                const volumeStrNew = this._setLineToStr( volumeNew, 1 );
+                const nameDataVolume = this.mapModel.layers.find( ( elem, index )=> index === i ).createDtStr;
+
+                const dataVolume = { 
+                    volume : volumeNew,
+                    volumeStr : volumeStrNew,
+                    dataVolume : nameDataVolume,
+                    arrHeightsFor3d : arrHeightsFor3dNew
+                };
+
+                arrAllVolume = [ ...arrAllVolume, dataVolume ];
+            }
+        }
+
+        return arrAllVolume;
+    }
+
+    //Тянем данные по всем старым слоям (Полигоны)
+    async _getHeightsAllLayersLine( inArrPoint, inIsMoreOneLayer ) { 
+
+        let arrAllHeight = [];
+        const checkLayersArr = this._getAllSelectedLayers( inIsMoreOneLayer, false );
+
+        for ( let i = 0; i < checkLayersArr.length; i++ ) {
+            if( checkLayersArr[i] ) {
+                const arrHeight = await this._getHeights( inArrPoint, i, 'line', inArrPoint.length );
+                if( arrHeight ) {
+                    const nameHeight = this.mapModel.layers.find( ( elem, index )=> index === i ).createDtStr;
+                    const dataHeight = { 
+                        array : arrHeight, 
+                        name : nameHeight 
+                    };
+                    arrAllHeight = [ ...arrAllHeight, dataHeight ];
+                }
+            }
+        }
+        return arrAllHeight;
+    }
+
+    _getMathDataFromArr( inArr ){
 
         if( !inArr || inArr.length < 2 )
             return;
         
-        let minInArr  = Math.min( ...inArr );
-        let maxInArr  = Math.max( ...inArr );
-        let averInArr = this._getAverageFromArr(inArr);
+        let minInArr = Math.min( ...inArr );
+        let maxInArr = Math.max( ...inArr );
+        let averInArr = this._getAverageFromArr( inArr );
 
         let mathData = {
-
-            min  :  minInArr.toFixed(2),
-            max  :  maxInArr.toFixed(2),
+            min : minInArr.toFixed(2),
+            max : maxInArr.toFixed(2),
             aver : averInArr.toFixed(2)
         }
 
@@ -379,17 +456,15 @@ export default class MathCalcHeight{
         return resAver;
     }
 
-    _getArrLinePoints(arrInpCoord, inAccurMeter, distanseLine, squarePolygon) {
+    _getArrLinePoints( arrInpCoord, inAccurMeter, distanseLine, squarePolygon ) {
 
-        let preciseCoeff = 3;
-        
-        if (!inAccurMeter)
-            inAccurMeter = 0.5;
-    
+        inAccurMeter = inAccurMeter || 0.5;
         distanseLine *= 1000;
-        let stepCount = (distanseLine / inAccurMeter) * preciseCoeff;
+
+        const preciseCoeff = 3;
+        const stepCount = (distanseLine / inAccurMeter) * preciseCoeff;
         this.dxVal = distanseLine / stepCount;
-        
+
         return this._getArrLinePointsAll(arrInpCoord, stepCount, null, squarePolygon);
     }
 
@@ -428,193 +503,159 @@ export default class MathCalcHeight{
         }
     }
 
-    async _getHeights( arrInpPoint, isNewHeights, type, pointsPerLine, isOnlyOnePoint ) {
+    async _getHeights( arrInpPoint, indexForRequest, type, pointsPerLine ) {
+
+        const failIndex = ( indexForRequest === undefined || indexForRequest === null );
+        if( failIndex  || !arrInpPoint || !type )
+            return;
 
         let zeroMark = 0;
-        let indexForRequest = isNewHeights ? this.indMain : this.indAdd;
         let skyHeightsIdDb = this.mapModel.layers[indexForRequest].id;
-        let skyHeightsId   = this.mapModel.heightsMapIdConfigList[indexForRequest];
         let skyHeightsName = this.mapModel.heightsMapNameConfigList[indexForRequest];
-        
-        let useMapbox = false;
 
-        if ( useMapbox ){
+        //для каждого массива координат необходимо создать полигон, вмещающий в себя все эти точки.
+        //Полигон должен быть как можно меньше, чтобы sql работал быстрее (если он будет слишком большой, то он охватит слишком много точек, по которым надо будет искать высоты для массива координат)
+        //если это 1. объемный полигон - он разбивается на строки, в пределах которой у координат одинаковая широта (или долгота). Поиск по каждой строке производится отдельно.
+        //если это 2. линия, то она в любом случае разбивается не более чем 250 точек за раз, т.к. линия может идти наискось, и у всех точек будут разные "широта/долгота" и поиск сразу по всем точкам нагрузит базу.
+        let pointsPerRequest;
+        let pointCountToSmooth; //коэфф. сглаживания
 
-            //высоты по координатам берутся из mapbox
-            let limitMapBoxService = 200;
-            let arrPointStr = [];
-            let outHeightsArr = [];
-    
-            //разбивает на массивы "по порядку"
-            let data = ext.getChunksArray(arrInpPoint.slice(0), limitMapBoxService);
-            for (let ii = 0; ii < data.length; ii++) {
-                let pointStrTemp = '';
-                for (let jj = 0; jj < data[ii].length; jj++) 
-                    pointStrTemp += data[ii][jj][1] + ',' + data[ii][jj][0] + ';';
-
-                // delete last ';'
-                pointStrTemp = pointStrTemp.substring(0, pointStrTemp.length - 1); 
-                arrPointStr.push(pointStrTemp);
-            }
-             
-            for (let i = 0; i < arrPointStr.length; i++) {
-                let url = 
-                    `https://api.mapbox.com/v4/${skyHeightsId}/tilequery/${arrPointStr[i]}.json?radius=3&access_token=${this.mapModel.accessToken}`;
-
-                await api.getDataFromMapBox(url)
-                    .then( res => {
-                        let outParseData = ext.setParseJsonToData(res.data, zeroMark);
-                        outHeightsArr = outHeightsArr.concat(outParseData);
-                    })
-                    .catch( 
-                        error => console.log(error)
-                    );
-            }
-     
-            return outHeightsArr;
-        } else {
-            //для каждого массива координат необходимо создать полигон, вмещающий в себя все эти точки.
-            //Полигон должен быть как можно меньше, чтобы sql работал быстрее (если он будет слишком большой, то он охватит слишком много точек, по которым надо будет искать высоты для массива координат)
-            //если это 1. объемный полигон - он разбивается на строки, в пределах которой у координат одинаковая широта (или долгота). Поиск по каждой строке производится отдельно.
-            //если это 2. линия, то она в любом случае разбивается не более чем 250 точек за раз, т.к. линия может идти наискось, и у всех точек будут разные "широта/долгота" и поиск сразу по всем точкам нагрузит базу.
-            let pointsPerRequest;
-            let pointCountToSmooth; //коэфф. сглаживания
-    
-            if (type == 'volume') {
-                if (pointsPerLine != null) {
-                    pointsPerRequest = pointsPerLine; //поиск сразу по всей колонке или строке
-                } else {
-                    pointsPerRequest = 250;
-                }
-            } else if (type == 'line') {
-                pointCountToSmooth = 2; //document.getElementById('IdSmoothLineCoeff').value;
-                if (pointCountToSmooth < 0) {
-    
-                    alert(getMessages('ruleSmothMin'));
-                    pointCountToSmooth = 0
-                }
-                if (pointCountToSmooth > 1000) {
-    
-                    alert(getMessages('ruleSmothMax'));
-                    pointCountToSmooth = 1000
-                }
-    
+        if ( type === 'volume' ) {
+            if (pointsPerLine != null) {
+                pointsPerRequest = pointsPerLine; //поиск сразу по всей колонке или строке
+            } else {
                 pointsPerRequest = 250;
             }
-    
-            let subRequests = [];
-            let data2 = ext.getChunksArray(arrInpPoint.slice(0), pointsPerRequest);
-    
-            for (let k = 0; k < data2.length; k++) {
-                //если в пределах строки объемного полигона точек более чем 1000, то они также разбиваются на части
-                let subDataArr;
-                if (data2[k].length > 1000) 
-                    subDataArr = ext.getChunksArray(data2[k].slice(0), 1000);
-                else 
-                    subDataArr = [data2[k]];
-    
-                for ( let s = 0; s < subDataArr.length; s++ ) {
-                    let latMax = subDataArr[s][0][1];
-                    let latMin = subDataArr[s][0][1];
-                    let longMax = subDataArr[s][0][0];
-                    let longMin = subDataArr[s][0][0];
-    
-                    for (let ii = 0; ii < subDataArr[s].length; ii++) {
-                        if (subDataArr[s][ii][1] > latMax) {
-                            latMax = subDataArr[s][ii][1];
-                        }
-                        if (subDataArr[s][ii][1] < latMin) {
-                            latMin = subDataArr[s][ii][1];
-                        }
-                        if (subDataArr[s][ii][0] > longMax) {
-                            longMax = subDataArr[s][ii][0];
-                        }
-                        if (subDataArr[s][ii][0] < longMin) {
-                            longMin = subDataArr[s][ii][0];
-                        }
-                    }
-    
-                    //здесь вычисляются точки полигона, по которому будет производиться поиск, путем прибавления 5 см (этого достаточно) ко всем сторонам
-                    let addMeters = 0.05;
-                    let rangePoints = [];
-    
-                    rangePoints.push(geolib.computeDestinationPoint({ latitude: latMax, longitude: longMax }, addMeters, 0));
-                    rangePoints.push(geolib.computeDestinationPoint({ latitude: latMax, longitude: longMax }, addMeters, 90));
-                    rangePoints.push(geolib.computeDestinationPoint({ latitude: latMax, longitude: longMax }, addMeters, 180));
-                    rangePoints.push(geolib.computeDestinationPoint({ latitude: latMax, longitude: longMax }, addMeters, 270));
-                    
-                    rangePoints.push(geolib.computeDestinationPoint({ latitude: latMax, longitude: longMin }, addMeters, 0));
-                    rangePoints.push(geolib.computeDestinationPoint({ latitude: latMax, longitude: longMin }, addMeters, 90));
-                    rangePoints.push(geolib.computeDestinationPoint({ latitude: latMax, longitude: longMin }, addMeters, 180));
-                    rangePoints.push(geolib.computeDestinationPoint({ latitude: latMax, longitude: longMin }, addMeters, 270));
-    
-                    rangePoints.push(geolib.computeDestinationPoint({ latitude: latMin, longitude: longMin }, addMeters, 0));
-                    rangePoints.push(geolib.computeDestinationPoint({ latitude: latMin, longitude: longMin }, addMeters, 90));
-                    rangePoints.push(geolib.computeDestinationPoint({ latitude: latMin, longitude: longMin }, addMeters, 180));
-                    rangePoints.push(geolib.computeDestinationPoint({ latitude: latMin, longitude: longMin }, addMeters, 270));
-    
-                    rangePoints.push(geolib.computeDestinationPoint({ latitude: latMin, longitude: longMax }, addMeters, 0));
-                    rangePoints.push(geolib.computeDestinationPoint({ latitude: latMin, longitude: longMax }, addMeters, 90));
-                    rangePoints.push(geolib.computeDestinationPoint({ latitude: latMin, longitude: longMax }, addMeters, 180));
-                    rangePoints.push(geolib.computeDestinationPoint({ latitude: latMin, longitude: longMax }, addMeters, 270));
-    
-                    let latMaxNew = rangePoints[0].latitude;
-                    let latMinNew = rangePoints[0].latitude;
-                    let longMaxNew = rangePoints[0].longitude;
-                    let longMinNew = rangePoints[0].longitude;
-    
-                    for ( let m = 0; m < rangePoints.length; m++ ) {
-                        if (rangePoints[m].latitude > latMaxNew) {
-                            latMaxNew = rangePoints[m].latitude;
-                        }
-                        if (rangePoints[m].latitude < latMinNew) {
-                            latMinNew = rangePoints[m].latitude;
-                        }
-                        if (rangePoints[m].longitude > longMaxNew) {
-                            longMaxNew = rangePoints[m].longitude;
-                        }
-                        if (rangePoints[m].longitude < longMinNew) {
-                            longMinNew = rangePoints[m].longitude;
-                        }
-                    }
-    
-                    let reqObj = {
-                        layer              : skyHeightsName,
-                        layerId            : skyHeightsIdDb,
-                        fields             : 'Height',
-                        pointsArray        : subDataArr[s],
-                        pointCountToSmooth : pointCountToSmooth,
-                        LongtitudeMin      : longMinNew,
-                        LongtitudeMax      : longMaxNew,
-                        LatitudeMin        : latMinNew,
-                        LatitudeMax        : latMaxNew
-                    };
-                    subRequests.push(reqObj);
-                }
-            }
-    
-            let itemsPerRequest = 20; //по сколько объектов запросить за один HTTP: запрос
-            let dataPerRequest = ext.getChunksArray( subRequests.slice(0), itemsPerRequest );
+        } else if (type === 'line') {
+            pointCountToSmooth = 2; //document.getElementById('IdSmoothLineCoeff').value;
+            if (pointCountToSmooth < 0) {
 
-            let outHeightsArr2 = [];
-            for ( let m = 0; m < dataPerRequest.length; m++ ) {
-                await api.postLayerPoints({ 
-                    Arr : dataPerRequest[m] 
-                }).then(response=>{
-                    const localRes = ext.setParseJsonToData(response.data, zeroMark);
-                    outHeightsArr2 = outHeightsArr2.concat(localRes);
-                }).catch(err=>{
-                    console.log(err);
-                });
+                alert(getMessages('ruleSmothMin'));
+                pointCountToSmooth = 0
+            }
+            if (pointCountToSmooth > 1000) {
+
+                alert(getMessages('ruleSmothMax'));
+                pointCountToSmooth = 1000
             }
 
-            return outHeightsArr2;
+            pointsPerRequest = 250;
         }
+
+        let subRequests = [];
+        let data2 = ext.getChunksArray(arrInpPoint.slice(0), pointsPerRequest);
+
+        for ( let k = 0; k < data2.length; k++ ) {
+
+            //если в пределах строки объемного полигона точек более чем 1000, то они также разбиваются на части
+            let subDataArr;
+            if (data2[k].length > 1000) 
+                subDataArr = ext.getChunksArray(data2[k].slice(0), 1000);
+            else 
+                subDataArr = [data2[k]];
+
+            for ( let s = 0; s < subDataArr.length; s++ ) {
+                let latMax = subDataArr[s][0][1];
+                let latMin = subDataArr[s][0][1];
+                let longMax = subDataArr[s][0][0];
+                let longMin = subDataArr[s][0][0];
+
+                for (let ii = 0; ii < subDataArr[s].length; ii++) {
+                    if (subDataArr[s][ii][1] > latMax) {
+                        latMax = subDataArr[s][ii][1];
+                    }
+                    if (subDataArr[s][ii][1] < latMin) {
+                        latMin = subDataArr[s][ii][1];
+                    }
+                    if (subDataArr[s][ii][0] > longMax) {
+                        longMax = subDataArr[s][ii][0];
+                    }
+                    if (subDataArr[s][ii][0] < longMin) {
+                        longMin = subDataArr[s][ii][0];
+                    }
+                }
+
+                //здесь вычисляются точки полигона, по которому будет производиться поиск, путем прибавления 5 см (этого достаточно) ко всем сторонам
+                let addMeters = 0.05;
+                let rangePoints = [];
+
+                rangePoints.push(geolib.computeDestinationPoint({ latitude: latMax, longitude: longMax }, addMeters, 0));
+                rangePoints.push(geolib.computeDestinationPoint({ latitude: latMax, longitude: longMax }, addMeters, 90));
+                rangePoints.push(geolib.computeDestinationPoint({ latitude: latMax, longitude: longMax }, addMeters, 180));
+                rangePoints.push(geolib.computeDestinationPoint({ latitude: latMax, longitude: longMax }, addMeters, 270));
+                
+                rangePoints.push(geolib.computeDestinationPoint({ latitude: latMax, longitude: longMin }, addMeters, 0));
+                rangePoints.push(geolib.computeDestinationPoint({ latitude: latMax, longitude: longMin }, addMeters, 90));
+                rangePoints.push(geolib.computeDestinationPoint({ latitude: latMax, longitude: longMin }, addMeters, 180));
+                rangePoints.push(geolib.computeDestinationPoint({ latitude: latMax, longitude: longMin }, addMeters, 270));
+
+                rangePoints.push(geolib.computeDestinationPoint({ latitude: latMin, longitude: longMin }, addMeters, 0));
+                rangePoints.push(geolib.computeDestinationPoint({ latitude: latMin, longitude: longMin }, addMeters, 90));
+                rangePoints.push(geolib.computeDestinationPoint({ latitude: latMin, longitude: longMin }, addMeters, 180));
+                rangePoints.push(geolib.computeDestinationPoint({ latitude: latMin, longitude: longMin }, addMeters, 270));
+
+                rangePoints.push(geolib.computeDestinationPoint({ latitude: latMin, longitude: longMax }, addMeters, 0));
+                rangePoints.push(geolib.computeDestinationPoint({ latitude: latMin, longitude: longMax }, addMeters, 90));
+                rangePoints.push(geolib.computeDestinationPoint({ latitude: latMin, longitude: longMax }, addMeters, 180));
+                rangePoints.push(geolib.computeDestinationPoint({ latitude: latMin, longitude: longMax }, addMeters, 270));
+
+                let latMaxNew = rangePoints[0].latitude;
+                let latMinNew = rangePoints[0].latitude;
+                let longMaxNew = rangePoints[0].longitude;
+                let longMinNew = rangePoints[0].longitude;
+
+                for ( let m = 0; m < rangePoints.length; m++ ) {
+                    if (rangePoints[m].latitude > latMaxNew) {
+                        latMaxNew = rangePoints[m].latitude;
+                    }
+                    if (rangePoints[m].latitude < latMinNew) {
+                        latMinNew = rangePoints[m].latitude;
+                    }
+                    if (rangePoints[m].longitude > longMaxNew) {
+                        longMaxNew = rangePoints[m].longitude;
+                    }
+                    if (rangePoints[m].longitude < longMinNew) {
+                        longMinNew = rangePoints[m].longitude;
+                    }
+                }
+
+                let reqObj = {
+                    layer : skyHeightsName,
+                    layerId : skyHeightsIdDb,
+                    fields : 'Height',
+                    pointsArray : subDataArr[s],
+                    pointCountToSmooth : pointCountToSmooth,
+                    LongtitudeMin : longMinNew,
+                    LongtitudeMax : longMaxNew,
+                    LatitudeMin : latMinNew,
+                    LatitudeMax : latMaxNew
+                };
+                subRequests.push(reqObj);
+            }
+        }
+
+        let itemsPerRequest = 20; //по сколько объектов запросить за один HTTP: запрос
+        let dataPerRequest = ext.getChunksArray( subRequests.slice(0), itemsPerRequest );
+        let outHeightsArr2 = [];
+
+        for ( let m = 0; m < dataPerRequest.length; m++ ) {
+            await api.postLayerPoints({ 
+                Arr : dataPerRequest[m] 
+            }).then(response=>{
+                const localRes = ext.setParseJsonToData(response.data, zeroMark);
+                outHeightsArr2 = outHeightsArr2.concat(localRes);
+            }).catch(err=>{
+                console.log(err);
+                outHeightsArr2 = [];
+            });
+        }
+        return outHeightsArr2;
     }
     
-    _setLineToStr(inWidth, typeIzm) {
-        if (!inWidth)
-            return;
+    _setLineToStr( inWidth, typeIzm ) {
+
+        if ( !inWidth )
+            return '0';
     
         if (typeIzm == 1) { //расчет объемов
             return inWidth > 1000000000 ?
