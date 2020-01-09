@@ -38,10 +38,10 @@
         computed : {
             ...mapGetters(['getModalData', 'getPointData']),
             nameSavingObject : {
-                get() {
+                get(){
                     return this.getPointData.nameObject;
                 },
-                set(inValue) {
+                set(inValue){
                     this.setCurrentMapValue({ field : 'nameObject', value : inValue });
                 }
             },
