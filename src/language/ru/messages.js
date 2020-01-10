@@ -13,13 +13,16 @@ module.exports = {
   holderComment    : 'Комментарий',
   nameCleanFormBut : 'Очистить форму',
 
+  objectDialogEditInfo : 'Пересчитать этот объект?',
   objectDialogInfo : 'Сохранить этот объект?',
   objectDialogSave : 'Сохранить',
   objectDialogCanc : 'Отменить', 
 
   mainLayerName    : 'Основной слой',      
   addLayerName     : 'Дополнительный слой',
+  addLayerNameDis  : 'Дополнительный слой скрыт',
 
+  noDataTable : 'Нет данных',
   nameButLoad      : 'Загрузить', 
   nameButCanc      : 'Очистить',
   nameOfPageLoad   : 'Загрузка',
@@ -97,8 +100,27 @@ module.exports = {
   mapName     : 'Площадка',
   layerDtName : 'Дата текущей съемки',
 
-  sureSaveMapObj   : 'Сохранить текущие объекты?',
-  sureCancelMapObj : 'Вернуть изначальную версию объектов?',
-  sureMathCalc     : 'Запустить расчет?',
-  sureDelObj       : 'Удалить этот объект?',
+  sureSaveMapObj    : 'Сохранить текущие объекты?',
+  sureCancelMapObj  : 'Вернуть изначальную версию объектов?',
+  sureMathCalc      : 'Запустить расчет?',
+  sureDelObj        : 'Удалить этот объект?',
+  pointsChangeError : 'На данных слоях детектор изменений отсутствует',
+
+  volumeHistory : 'Изменение объемов извлечения грунта по датам',
+  volumeDim : 'Объем, кубометры',
+  relToZero : 'Относительно нулевой отметки',
+  relToStartWork : 'Относительно начала работ',
+
+  recognitionName : 'Показать распознанные объекты',
+  bulldozer : 'Бульдозер',
+  bus : 'Автобус',
+  towerCrane : 'Башенный кран',
+  excavator : 'Экскаватор',
+  passengerCar : 'Легковая машина',
+  truck : 'Грузовик',
+  allRecognObject : 'Отображено объектов на карте',
+
+  enterName : 'Введитe имя объекта',
+  showGeoPlan : 'Показать геоплан объекта',
+  heightOnPoint : 'Высота в данной точке',
 }
