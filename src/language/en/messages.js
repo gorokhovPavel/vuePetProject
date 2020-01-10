@@ -13,13 +13,16 @@ module.exports = {
   holderComment    : 'Comment',
   nameCleanFormBut : 'Clean the form',
 
+  objectDialogEditInfo : 'Recount this object?',
   objectDialogInfo : 'Save the object?',
   objectDialogSave : 'Save',
   objectDialogCanc : 'Cancel',
 
   mainLayerName    : 'Main layer',
   addLayerName     : 'Additional layer',
+  addLayerNameDis  : 'Additional layer is disabled',
 
+  noDataTable : 'No data',
   nameButLoad      : 'Upload',
   nameButCanc      : 'Clean',
   nameOfPageLoad   : 'Loading',
@@ -97,8 +100,27 @@ module.exports = {
   mapName     : 'Area',
   layerDtName : 'Date of current layer',
 
-  sureSaveMapObj   : 'Save current objects?',
-  sureCancelMapObj : 'Return the original version of the objects?',
-  sureMathCalc     : 'Run the calculation?',
-  sureDelObj       : 'Delete this object?',
+  sureSaveMapObj    : 'Save current objects?',
+  sureCancelMapObj  : 'Return the original version of the objects?',
+  sureMathCalc      : 'Run the calculation?',
+  sureDelObj        : 'Delete this object?',
+  pointsChangeError : 'There is no change detector on these layers',
+
+  volumeHistory : 'Сhange in soil recovery volumes by dates',
+  volumeDim : 'Volume, cubic meters',
+  relToZero : 'Relatively zero',
+  relToStartWork : 'Regarding the start of work',
+
+  recognitionName : 'Show recognized objects',
+  bulldozer : 'Bulldozer',
+  bus : 'Bus',
+  towerCrane : 'Tower crane',
+  excavator : 'Excavator',
+  passengerCar : 'Passenger car',
+  truck : 'Truck',
+  allRecognObject : 'Objects displayed on the map',
+
+  enterName : 'Enter the name of the object',
+  showGeoPlan : 'Show geoplan of object',
+  heightOnPoint : 'Height at a current point',
 }
