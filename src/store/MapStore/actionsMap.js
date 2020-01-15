@@ -1,61 +1,112 @@
-import api               from 'api/apiConfig'
-import ext               from 'services/AddExtension'
-import Instrument        from 'services/InstrumentsData'
-import lang              from 'language/Translate'
+import api from 'api/apiConfig'
+import ext from 'services/AddExtension'
+import lang from 'language/Translate'
+import Layer from 'services/Layer'
+import Instrument from 'services/InstrumentsData'
 import privateActionsMap from './privateActionsMap' 
-import buildChart        from 'services/BuildChart'
 
 const actions = {
-
+    
     //Устанавливаем слои на нашу мини карту для отчета
-    setReportLayer( { state, commit }, obj ){
-
+    setReportLayer( { state, commit }, obj ) {
       privateActionsMap._setReportLayer({state, commit}, obj);
     },
 
     //Наполняем мини карту пользовательскими объектами для отчета
-    setAdditionalPoints({state}, map){
-
+    setAdditionalPoints( {state}, map ) {
       privateActionsMap._loadUserObjects( {state}, map );
     },
 
     //Обертка лодера над отчетом и вывод ошибок в консоль
-    getActionReportWithLoader( { commit }, actionReport ){
-
-      ext.extForAxiosWithState( commit, {
-          
+    getActionReportWithLoader( { commit }, actionReport ) {
+      ext.setForAxiosWithState( commit, {
         letUrlAction : actionReport
       });
     },
 
     //Убираем или добавляем на карту возможность изменения структуры объектов
-    setActionChangeDrawMode( { state, commit, getters }, inStateElem ){
-
+    setActionChangeDrawMode( { state, commit, getters }, inStateElem ) {
       commit( 'setShowMode', inStateElem );
       getters.getInstrument.setToggleDrawObjFromMap(state[inStateElem]);
     },
 
     //Обработка модалок, точка входа
     setActionModal : ( { state, commit, dispatch } ) => {
-
-      let actionData = state.activeConfrmDialogAction;
-
+      const actionData = state.activeConfrmDialogAction;
       commit('setCurrentMapValue', { field : 'activeModal', value : false });
       dispatch( actionData.nameAction, actionData.dataAction );
     },
-  
-    //Запуск расчета профиля высот и объемов
-    setActionMathCalc( { state, commit, getters }, inSelDraw ){
 
+    //Сохранение объекта, точка входа
+    setStartSaveModal : ( {commit} )=> {
+      commit( 'setShowMode', 'activeModalName' );
+    },
+
+    //Собственно, сохранение конкретного объекта
+    setActionSaveModal : ( { state, commit, getters }, nameObject )=> {
+      
+      let indexOfMapObjList = -1;
+      let localMapObjList = state.mapObjListServer;
+      const currentObj = localMapObjList.find( ( x,index )=> {
+        if( x.id === state.instrumentCurrentId ) {
+          indexOfMapObjList = index;
+          return x;
+        }
+      });
+      
+      const typeDraw = ext.getTypeObjForDraw( currentObj, state.listOfInstruments );
+      const typeDrawId = typeDraw ? typeDraw.id : state.currentInstrument;
+      let typeObjName = state.listOfInstruments[typeDrawId-1].name;
+
+      if( typeDrawId > 3 ) {
+        //В случае высотной метки оставим тип Точка. в остальных - меняем на соответствующий тим маркера
+        typeObjName = ( currentObj.measurItem === 0 ) ? 'point' : state.listOfInstruments[currentObj.measurItem-1].name;
+        //Поставляем маркерам их свойства
+        currentObj.chartData = {
+          name : state.nameObject,
+          heightsData : state.commentObject,
+          date : state.dateObject
+        }
+      }
+
+      currentObj.properties = {
+        type : typeObjName,
+        name : nameObject,
+        date : ext.getCurrentDate(),
+        numColor : 3,
+        isReport : true,
+        id : currentObj.id
+      }
+
+      if( indexOfMapObjList !== -1 ) {
+        localMapObjList[indexOfMapObjList] = currentObj;
+      }
+
+      localMapObjList = localMapObjList.filter( x=>x.properties.id );
+      
+      new Promise( resolve => resolve( commit( 'setRefreshMapObjTable' ))
+      ).then( ()=>{
+        commit( 'setCurrentMapValue', { field : 'mapObjListServer', value : localMapObjList } );
+      }).then( ()=>{
+        commit( 'setCurrentMapValue', { field : 'activeModalName', value : false });
+        commit( 'setCurrentMapValue', { field : 'showPhoto', value : false });
+        commit( 'setCurrentMapValue', { field : 'showGraphPlotChart', value : false });
+        commit( 'setCleanObjectForm' );
+      }).then( ()=>{
+        getters.getInstrument.setImagesForDrawObjects();
+      });
+    },
+
+    //Запуск расчета профиля высот и объемов
+    setActionMathCalc( { state, commit, getters }, inSelDraw ) {
       //Прячем предварительно окна с графиками и маркерами
       commit( 'setCurrentMapValue', { field : 'showGraphPlotChart', value : false } );
-      commit( 'setCurrentMapValue', { field : 'showPhoto',          value : false } );
-
+      commit( 'setCurrentMapValue', { field : 'showPhoto', value : false } );
+      
       //Запуск метода расчета высот по измерениям
-      ext.extForAxiosWithState( commit, {
-           
+      ext.setForAxiosWithState( commit, {   
         letUrlAction : getters.getInstrument.setRequestActionInstr( inSelDraw ), 
-        goodCallBack : () => {
+        goodCallBack : ()=> {
           //Активация панели маркеров и графиков
           commit( 'setShowMarkerAndInstrumentsMode', { ins : state.currentInstrument, curDraw : inSelDraw } );
         }
@@ -63,122 +114,105 @@ const actions = {
     },
 
     //Удаление объекта с локальной таблицы
-    setActionDelMapObj( { state, commit }, inSelDraw ){
+    setActionDelMapObj( { state, commit, getters }, inSelDraw ) {
 
       //Копия для выборки
-      const arrServerMapObj = state.mapObjListServer;
-
-      //Грохаем предыдущие версии таблиц - иначе не перегрузится компонент :\
-      commit( 'setCurrentMapValue', { field : 'mapObjListServer', value : null } );
-      commit( 'setCurrentMapValue', { field : 'mapObjListTable',  value : null } );
+      let arrServerMapObj = state.mapObjListServer || [];
+      arrServerMapObj = arrServerMapObj.filter( x=>x.properties.id );
       
-      //Второе условие для перегрузки компонента - тайминг :\\
+      commit( 'setRefreshMapObjTable' );
+      
+      //Тайминг :\\
       setTimeout( ()=> {
-
         //Убиваем текущую измерялку
         state.mapObjListDraw.trash();
         commit( 'setCurrentMapValue', { field : 'currentInstrument', value : 0 } );
-
-        if( inSelDraw ){
-
-          //Сначала грохаем сам элемент с карты
+        if( inSelDraw ) {
+          //Сначала грохаем сам элемент с карты, если есть такой
           const elemDraw = state.mapObjListDraw.getAll().features.find( x => x.id === inSelDraw.id );
-          const elemDrawFeature = state.mapObjListDraw.add( elemDraw );
-          
-          state.mapObjListDraw.delete( elemDrawFeature );
-
-          //Ну а потом удаляем его из таблицы объектов
-          const arrServerMapObjIdList = arrServerMapObj.map( x => x.id);
-          const indexCurrElem = arrServerMapObjIdList.indexOf( inSelDraw.id );
-          
-          if( indexCurrElem !== -1 )
-            arrServerMapObj.splice( indexCurrElem, 1 );
+          const finalElem = elemDraw || inSelDraw;
+          //Потом с таблицы, если и там есть
+          if( finalElem ) {
+            const elemDrawFeature = state.mapObjListDraw.add( finalElem );
+            state.mapObjListDraw.delete( elemDrawFeature );
+            //Ну а потом удаляем его из таблицы объектов
+            const arrServerMapObjIdList = arrServerMapObj.map( x => x.id);
+            const indexCurrElem = arrServerMapObjIdList.indexOf( finalElem.id );
+            if( indexCurrElem !== -1 ) {
+              arrServerMapObj.splice( indexCurrElem, 1 );
+            }
+          }
         }
-      
         //Перезаписываем
         commit( 'setCurrentMapValue', { field : 'mapObjListServer', value : arrServerMapObj } );
+        getters.getInstrument.setImagesForDrawObjects();
       }, 100 );
     },
 
     //Обертка над возвратом или сохранением схем
-    setConfirmActionMapObj( { commit, dispatch }, inSaveAction ){
-
+    setConfirmActionMapObj( { commit, dispatch }, inSaveAction ) {
       let actionPromise = new Promise(
-        resolve => resolve( dispatch( 'setActionChangeColorAndReport', inSaveAction ) )
+        resolve=> resolve( dispatch( 'setActionChangeColorAndReport', inSaveAction ) )
       );
-
-      actionPromise.then( () => {
+      actionPromise.then( ()=> {
         if( inSaveAction ){
-          commit( 'setCurrentMapValue', { field : 'activeSnack',      value : true } );
+          commit( 'setCurrentMapValue', { field : 'activeSnack', value : true } );
           commit( 'setCurrentMapValue', { field : 'activeSnackTitle', value : lang.getMessages('saveMapObjSuccess') } ); 
         }
       });
     },
+    
+    //Собс-но, возврат или сохранение схем
+    setActionChangeColorAndReport : ( {state, commit, getters}, typeAction )=> {
+      
+      let tableItem = null;
 
-    //Собсно, возврат или сохранение схем
-    setActionChangeColorAndReport : ( { state, commit, getters }, typeAction ) => {
-
-      if( !typeAction )
-        privateActionsMap._setReloadMapObj( { state, commit, getters } );
-      else {
-
-        const listMapObjTbl  = state.mapObjListTable;
-        const lastMapObjDraw = state.mapObjListDraw.getAll().features;
-
-        const lastMapObjDrawUp = lastMapObjDraw.map( item => {
-          
-          if( listMapObjTbl ){
-            let elemFromTblMapObj = listMapObjTbl.find( x => x.id === item.id );
-            item.properties.isReport = elemFromTblMapObj.isReport;
-            item.properties.numColor = elemFromTblMapObj.numColor;
+      if( !typeAction ) {
+        privateActionsMap._setReloadMapObj({ state, commit, getters });
+      } else {
+        const lastMapObjDrawUp = state.mapObjListServer.map( item => {   
+          tableItem = state.mapObjListTable.find( x=> item.id === x.id );
+          if( tableItem ) {
+            item.properties.numColor = tableItem.numColor;
+            item.properties.isReport = tableItem.isReport;
           }
-
           return {
-            geometry   : item.geometry,
-            id         : item.id,
+            id : item.id,
+            type : item.type,
+            geometry : item.geometry,
             properties : item.properties,
-            type       : item.type,
+            measurItem : item.measurItem,
+            chartData : item.chartData
           }
         });
 
         const lastMapObjDrawJson = JSON.stringify( lastMapObjDrawUp );
-       
         const localObjMap = {
-
           MapId : state.mapId,
           MapObjListJson : lastMapObjDrawJson
-        }
-
-        ext.extForAxiosWithState( commit, {
-        
+        };
+        ext.setForAxiosWithState( commit, {
           letUrlAction : api.postSaveObject(localObjMap)
         });
       }
     },
 
-    //Стартовая загрузка данных для компонета карты
-    setLoadMenuData( {commit} ){
-
+    //Стартовая загрузка данных для меню
+    setLoadMenuData({commit}) {
       commit( 'setCurrentMapValue', { field : 'menuDataList',  value : [] }),
-
-      ext.extForAxiosWithState( commit, {
-        
+      ext.setForAxiosWithState( commit, {
         letUrlAction : api.getMenuApi(), 
         goodCallBack : response => commit('setCurrentMapValue', { field : 'menuDataList',  value : response.data }) 
       });
     },
   
-    //Стартовая загрузка данных для меню
-    setLoadMapData( { state, commit, dispatch } ){
-
+    //Стартовая загрузка данных для компонета карты
+    setLoadMapData( { state, commit, dispatch } ) {
       commit( 'setMapObjListDefault' );
-      commit('setCurrentMapValue', { field : 'mapModel', value : null }),
-  
-      ext.extForAxiosWithState( commit, {
-
+      commit( 'setCurrentMapValue', { field : 'mapModel', value : null } );
+      ext.setForAxiosWithState( commit, {
         letUrlAction : api.getMapApi(state.mapId), 
         goodCallBack : response => {
-          
           commit('setModelMap', response.data );
           dispatch('setActionInitInstrumentData');
         }
@@ -186,147 +220,116 @@ const actions = {
     },
     
     //Задаем параметры рендеринга
-    setRenderDefault({ commit, dispatch }, isRunRender ){
-
+    setRenderDefault({ commit, dispatch }, isRunRender ) {
       commit('setCurrentMapValue', { field : 'currentInstrument', value : 0 } );
       commit('setLayersRenderEnable');
-
-      if(isRunRender)
+      if(isRunRender) {
         dispatch('setMapRendering');
+      }
+    },
+
+    setRenderLayers({state, commit}) {
+      //Eсли не заполнены основные свойства - выходим, нет смысла формировать объект Layer
+      if( !privateActionsMap._getCheckMainMapProperty(state.curMap) ) return;
+      //Формируем 3д модель
+      commit('set3dFrame', state.mapModel);
+      //Формируем отснятые слои
+      let layerItem = new Layer( 
+        state.curMap, state.mapModel, state.showColorLayer, state.currentMainIndex, state.currentAddIndex, state.opacityOfLayer 
+      );
+      layerItem.setStartOptionsOfLayers();
+      //Чистим ресурсы 
+      layerItem = null;
+      commit('setLayersRenderDisable');
     },
 
     //Постоянный рендеринг карты, реагирующий на каждый чих
-    setMapRendering( { state, commit, getters } ){
-
-      const inMap = state.curMap;
-      
+    setMapRendering( { state, commit, getters, dispatch } ) {
       //Если не сформирован главный объект карты - выходим
-      if(!inMap)
-        return;
-
+      if( !state.curMap ) return;
       //Рендеринг отснятых слоев
       if( state.isLayersRender )
-        privateActionsMap._setRenderLayers( { state, commit } );
-
+        dispatch('setRenderLayers');
       //Рендеринг имеющихся маркеров и интсрументов измерения
-      if( !state.mapObjListDraw )  
+      if( !state.mapObjListDraw ) {
         privateActionsMap._setRenderDraw( { state, commit, getters } );
-       
-      //Рендеринг точек изменения
-      if( state.pointsOfChanges !== null )
-        privateActionsMap._setRenderPointsChange( { state, commit } );
+      }
     },
   
     //Присваиваем конструктуру сервиса InstrumentData объеты состояний
     setActionInitInstrumentData( { state, commit, dispatch } ){
-
       commit( 'setCurrentMapValue', { field : 'instrumentData', value : new Instrument( state, commit, dispatch ) });
     },
-
-    setChangeDatesOfLayers({commit}){
-      
-      commit('setShowMode', 'showIsChangeMainAddLayer' );
   
-      const mainLayer = document.querySelector(`#mainLayer`);
-      const addLayer  = document.querySelector("#addLayer");
-      let partValue   = 0;
-  
-      partValue = mainLayer.value;
-      mainLayer.value = addLayer.value;
-      addLayer.value = partValue;
-
-      commit('setIndexOfLayer', {date : mainLayer.value, idObj : 'mainLayer'});
-      commit('setIndexOfLayer', {date : addLayer.value,  idObj : 'addLayer'});
+    setShowObjectRecognized : ( {commit, state}, {data, colorArr, filter} )=> {
+      let layerItem = new Layer( state.curMap );
+      if(filter) {
+        layerItem.setDeleteLayerObject(true);
+        layerItem.setRecognitionObject(data, colorArr);
+      } else {
+        commit('setShowMode', 'showRecognizedObjects' );
+        if( state.showRecognizedObjects ) {
+          layerItem.setRecognitionObject(data, colorArr);
+        } else {
+          layerItem.setDeleteLayerObject(true);
+        }
+      }
+      layerItem = null;
     },
-  
-    setChangeZoom : (commit, isUp) => {
-  
+
+    setChangeZoom : (commit, isUp)=> {
       let elemZoom = isUp ? ".mapboxgl-ctrl-zoom-in" : ".mapboxgl-ctrl-zoom-out";
       document.querySelector(elemZoom).click();
     },
   
-    setGoHomeLocation :( { state } )=>{
-  
-      let mapModel = state.mapModel.map;
-      
+    setGoHomeLocation :( {state} )=> {
+      const mapModel = state.mapModel.map;
       state.curMap.fitBounds([ 
         [mapModel.minLon, mapModel.minLat], 
         [mapModel.maxLon, mapModel.maxLat] 
-     ], {maxZoom: 15});
+      ], { maxZoom : 15 } );
     },
 
     setActivateDrawAction : ( { commit, getters }, inTypeInstrumnet ) => {
-  
       commit('setLayersRenderDisable');
       commit('setCurrentMapValue', { field : 'currentInstrument', value : inTypeInstrumnet } );
-        
       getters.getInstrument.setPropForMark( inTypeInstrumnet );
     },
   
-    setMouseDownUpOnGraph( commit, isUp ){
-  
-        let parentFrame = document.querySelector('.measGraphMapPos');
-        
-        if (parentFrame.classList){
-  
-            if (isUp)
-              parentFrame.className = parentFrame.className + ' move';
-            else 
-              parentFrame.className = parentFrame.className.replace(/\bmove\b/g, '');
-        }
-    },
-  
-    setActionClick( { state, getters, commit }, event ){
-      
+    setActionClick( { state, getters, commit }, event ) {
       //Активация инструмента
       getters.getInstrument.setPreparePopupProp( event );
-
       //Активация панели маркеров и графиков для новых элеметнов
       commit( 'setShowMarkerAndInstrumentsMode', { ins : state.currentInstrument, curDraw : null } );
     },
     
-    setActionDblClick( { getters }, event ){
-
+    setActionDblClick( { getters }, event ) {
       event.preventDefault();
       getters.getInstrument.setActionInstrumnentGoMath();
     },
 
-    setVisible3d( {}, isMainlayer ) {
-      
-      const myDivObj = document.querySelector('#graphPlotChart');
-      
-      if(!myDivObj.data)
-        return;
-
-      let indexBut = isMainlayer ? 0 : 1;
-      myDivObj.data[indexBut].visible = ( myDivObj.data[indexBut].visible === 'visibility' ) ? 'legendonly' : 'visibility';
-      buildChart.setResstartChart(myDivObj);
-    },
-
-    setShowChangeOfLayers( {state, commit}, isShowMode ){
-
+    //Дергаем апи для просмотра точек изменения и далнейшая их отрисовка
+    setShowChangeOfLayers({state, commit}, isShowMode) {
+      commit('setCurrentMapValue', { field : 'showPointsChangesCheck',  value : isShowMode });
       commit('setCurrentMapValue', { field : 'showColorScale',  value : isShowMode });
-
-      if(isShowMode){
-
-        ext.extForAxiosWithState( commit, {
-        
-          letUrlAction : api.getChangeResults(state.mainLayerId, state.addLayerId), 
-          goodCallBack : response => {
-            
-            commit('setCurrentMapValue', { field : 'pointsOfChanges',  value : response.data });
-          }
-        });
-      } else 
-        commit('setCurrentMapValue', { field : 'pointsOfChanges',  value : -1 });
+      new Promise( resolve => {
+        if( isShowMode ){
+          ext.setForAxiosWithState( commit, {
+            letUrlAction : api.getChangeResults(state.mainLayerId, state.addLayerId), 
+            goodCallBack : response => {
+              resolve(response.data);
+            }
+          });
+        } else
+          resolve(null);
+      }).then( result => 
+        privateActionsMap._setRenderPointsChange( { state, commit }, result )
+      );     
     },
 
-    async setActionUploadMedia( {commit, state},  ){
-
+    async setActionUploadMedia({commit, state}){
       //inDropZone.processQueue(); 
-    },
-
-   
+    },  
 }
 
 export default actions;
