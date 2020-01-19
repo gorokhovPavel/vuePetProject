@@ -1,24 +1,25 @@
 import lang from 'language/Translate'
 
 export default class BuildChart {
-
+    //simple profile chart
     static addTwoDimGraph( inHeightsData, reportObject ) {
-
         const { inArr, distanseLine, stepLine } = inHeightsData;
         const firstArr = inArr.find(x=>x.array.length>0);
-        const xArrForScale = !firstArr ? [] : firstArr.array.map( (item, index)=> index * stepLine );
+        const xArrForScale = !firstArr ? [] : firstArr.array.map( ( _, index )=> index * stepLine );
         const traceArr = inArr.map( elem=> {
             return {
                 y : elem.array,
-                x : xArrForScale,
+                x : xArrForScale.map( x=> +x.toFixed(2) ),
                 fill : 'tozeroy',
                 type : 'scatter',
                 name : elem.name
             }
         });
-
         const layout = {
-            title : `${ lang.getMessages('heightProfile')} ${distanseLine} , ${lang.getMessages('step')} : ${ stepLine.toFixed(1) } ${lang.getMessages('meter') }`,
+            title : `${ lang.getMessages('heightProfile')} ${distanseLine}, ${lang.getMessages('step')} : ${ stepLine.toFixed(1) } ${lang.getMessages('meter') }`,
+            yaxis : { 
+                hoverformat : '.2f', 
+            },
             legend : {
                 x : 0,
                 y : -0.2,    
@@ -32,16 +33,16 @@ export default class BuildChart {
                 t : 50
             }
         };
-    
-        if( reportObject )
+        if( reportObject ) {
             Plotly.newPlot('graphPlotChart_' + reportObject.id, traceArr, layout, { displayModeBar: false });
-        else
+        }
+        else {
             Plotly.newPlot('graphPlotChart', traceArr, layout, { displayModeBar: false });
+        }
     }
 
     //3d volume
     static addThreeDimGraph( inHeightsData, reportObject ) {
-
         const { inArr, inPolygonInfo } = inHeightsData;
         document.querySelector('#graphChartInfo').innerHTML=inPolygonInfo[1];
         const layout = {
@@ -56,13 +57,14 @@ export default class BuildChart {
             }
         };
 
-        const data_z1 = { x:0, z: inArr[0], type: 'surface', showscale: false };
-        const data_z2 = { x:0, z: inArr[1], type: 'surface', showscale: false };
+        const data_z1 = { x : 0, z : inArr[0], type : 'surface', showscale : false };
+        const data_z2 = { x : 0, z : inArr[1], type : 'surface', showscale : false };
         
-        if( reportObject )
+        if( reportObject ) {
             Plotly.newPlot('graphPlotChart_' + reportObject.id, [data_z1, data_z2], layout, { displayModeBar: false } );    
-        else
+        } else {
             Plotly.newPlot('graphPlotChart', [data_z1, data_z2], layout, { displayModeBar: false } );
+        }
     }
 
     //2d volume
@@ -81,41 +83,52 @@ export default class BuildChart {
         });
         const traceArr = [ inArr, upInArr ].map( (elem, index)=> {
             return {
-                y : elem.map( x=>x.volume.toFixed(2) ),
+                y : elem.map( x=> +x.volume.toFixed(2) ),
                 x : elem.map( x=>x.dataVolume ),
-                type  : ( index === 0 ) ? 'scatter' : 'bar',
+                type : ( index === 0 ) ? 'scatter' : 'bar',
                 marker: ( index === 0 ) ? { color : 'rgb(26, 118, 255)' } : { color : 'rgb(158,202,225)' },
                 name : ( index === 0 ) ? lang.getMessages('relToZero') : lang.getMessages('relToStartWork')
             }
         });
         const layout = {
             title : `${lang.getMessages('volumeHistory')} : `,
-            yaxis : { title: lang.getMessages('volumeDim') },
+            yaxis : { 
+                hoverformat : '.2f',
+                title : lang.getMessages('volumeDim') 
+            },
+            xaxis : {
+                tickfont : {
+                    size : 14,
+                    color : 'rgb(107, 107, 107)'
+                }
+            },
             legend : {
-                x : 0,
-                y : 1,
-                traceorder : 'normal',
+                x : 0.1,
+                y : 1.15,
+                orientation : 'h',
                 font : {
                   family : 'sans-serif',
-                  size : 12,
+                  size : 10,
                   color : '#000'
                 },
                 bgcolor : '#E2E2E2',
-                bordercolor : '#FFFFFF',
-                borderwidth : 2
             },
             margin : {
                 l : 65,
                 r : 45,
-                b : inArr.length > 5 ? 80 : 45,
+                b : inArr.length > 5 ? 100 : 45,
                 t : 60
-            }
+            },
+            barmode : 'group',
+            bargap : 0.15,
+            bargroupgap : 0.1
         };
-    
-        if( reportObject )
+        if( reportObject ) {
             Plotly.newPlot('graphPlotChart_' + reportObject.id, traceArr, layout, { displayModeBar: false });    
-        else
+        }
+        else {
             Plotly.newPlot('graphPlotChart', traceArr, layout, { displayModeBar: false });
+        }
     }
 
     //redraw graph
