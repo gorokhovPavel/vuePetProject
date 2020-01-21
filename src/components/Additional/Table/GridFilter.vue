@@ -31,7 +31,7 @@
       actualRowsData : null,
     }),
     computed : {
-      ...mapGetters([ 'getListOfMapObj', 'getListOfMapTable', 'getLineOrPolygon' ]),
+      ...mapGetters([ 'getMapObjList', 'getLineOrPolygon' ]),
       columnsData() {
         return [
           { isOrder : true, value : '' },
@@ -43,21 +43,26 @@
         ]
       },
       rowsData() {
-        this.actualRowsData = ( this.getListOfMapObj || [] );
-        return this.actualRowsData.map( x => {
-          let currType = x.typeView || x.type;
-          let currIsReport = this.getLineOrPolygon(currType) ? x.isReport : true;
-          let currNumColor = x.properties.numColor || ( this.getLineOrPolygon(currType) ? 3 : 6  );
-          return {
-            type : x.properties.type,
-            name : x.properties.name,
-            date : x.properties.date,
-            numColor : currNumColor,
-            isReport : currIsReport,
-            delete : null,
-            id : x.id
+        this.actualRowsData = ( this.getMapObjList.mapObjListServer || [] );
+        const finalList = [];
+        this.actualRowsData.forEach( x => {
+          if( x.properties && x.properties.id ) {
+            const currType = x.typeView || x.type;
+            const currIsReport = this.getLineOrPolygon(currType) ? x.isReport : true;
+            const currNumColor = x.properties.numColor || ( this.getLineOrPolygon(currType) ? 3 : 6  );
+            const finalObj = {
+              type : x.properties.type,
+              name : x.properties.name,
+              date : x.properties.date,
+              numColor : currNumColor,
+              isReport : currIsReport,
+              delete : null,
+              id : x.id
+            };
+            finalList.push(finalObj);
           }
         });
+        return finalList;
       },
     }
   }
