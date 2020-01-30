@@ -1,103 +1,91 @@
-import mapboxDraw     from '@mapbox/mapbox-gl-draw/js'
-import lang           from 'language/Translate'
-import drawStyles     from 'services/DrawStyles'
-import MathCalcHeight from 'services/MathCalcHeight'
-import ext            from 'services/AddExtension'
-
 import '@mapbox/mapbox-gl-draw/css'
+import mapboxDraw from '@mapbox/mapbox-gl-draw/js'
+import lang from 'language/Translate'
+import drawStyles from 'services/DrawStyles'
+import MathCalcHeight from 'services/MathCalcHeight'
+import buildChart from 'services/BuildChart'
+import ext from 'services/AddExtension'
 
 export default class Instrument {
 
-    constructor( inStateObj, inCommitObj, inDispatchObj ){
-
-        this.stateData    = inStateObj;
-        this.commitData   = inCommitObj;
+    constructor( inStateObj, inCommitObj, inDispatchObj ) {
+        this.stateData = inStateObj;
+        this.commitData = inCommitObj;
         this.dispatchData = inDispatchObj;
-
         this.mathCalcHeight = new MathCalcHeight();
     }
 
     //Выдаем коллекцию текущих объектов карты
-    getFetureList( inElemId ){
+    getFetureList( inElemId ) {
 
-        let mapObjFinList = null;
-
-        const mapObjDrawlist   = this.stateData.mapObjListDraw;
+        let [ mapObjFinList, mapObjDrawItem, mapObjDrawlist ] = [ null, null, this.stateData.mapObjListDraw ];
         const mapObjServerList = this.stateData.mapObjListServer;
-
+        
         try {
-
-            mapObjFinList = mapObjDrawlist.getAll().features
-        } catch(error) {
-
-            //console.log(error);
-            mapObjFinList = mapObjServerList;
+            mapObjDrawlist = mapObjDrawlist.getAll().features;
+            mapObjFinList = mapObjServerList.map( item=> {
+                mapObjDrawItem = mapObjDrawlist.find( x=> x.id === item.id );
+                if( mapObjDrawItem )
+                    item.geometry = mapObjDrawItem.geometry;
+                return item;
+            });
+        } catch( error ) {
+            mapObjFinList = mapObjServerList || [];
         }
 
         mapObjFinList = !inElemId ? mapObjFinList : mapObjFinList.filter( x => x.id === inElemId );
-
         return mapObjFinList;
     }
 
     //Объявление нового объекта с измерялками
-    getMapBoxDraw(){
-
+    getMapBoxDraw() {
         return new mapboxDraw({
-            
             displayControlsDefault : true,
-            styles   : drawStyles.styleMapBoxDrawList(),
+            styles : drawStyles.styleMapBoxDrawList(),
             controls : {
-                polygon     : true,
+                polygon : true,
                 line_string : true,
-                point       : true,
-                trash       : true
+                point : true,
+                trash : true
             }
         });
     }
 
     //Акативация нового инструмента
     setPropForMark( inItem ){
-
         let drawTypeName = null;
-
         switch( inItem ){
-
             //Линия 
-            case 2 : drawTypeName = '.mapbox-gl-draw_line';    break;
-
+            case 2 : drawTypeName = '.mapbox-gl-draw_line'; break;
             //Полигон 
             case 3 : drawTypeName = '.mapbox-gl-draw_polygon'; break;
-            
             //Точка 
             case 1 : 
             case 4 :
             case 5 :
-            case 6 : drawTypeName = '.mapbox-gl-draw_point';   break;
-    
+            case 6 : drawTypeName = '.mapbox-gl-draw_point'; break;
             //Корзина (удаление) 
-            case 0 : drawTypeName = '.mapbox-gl-draw_trash';   break;
+            case 0 : drawTypeName = '.mapbox-gl-draw_trash'; break;
         }
-
-        document.querySelector( drawTypeName ).click();
+        const buttonDraw = document.querySelector( drawTypeName );
+        if( buttonDraw ) document.querySelector( drawTypeName ).click();
     }
 
     //Вызов действия объекта карты
-    async setActionInstrumnentGoMath( inSelObjDraw ){
+    async setActionInstrumnentGoMath( inSelObjDraw ) {
         
-        const sureMathCalcTitle = lang.getMessages('sureMathCalc');
         const nameAction = 'setActionMathCalc';
+        const sureMathCalcTitle = lang.getMessages('sureMathCalc');
 
-        if( !inSelObjDraw )
+        if( !inSelObjDraw ) {
             inSelObjDraw = ext.getSelectDraw( this.stateData.mapObjListDraw );
+        }
 
-        if( !inSelObjDraw )
-            return;
+        if( !inSelObjDraw ) return;
 
-        if( inSelObjDraw.geometry.type === 'LineString' || inSelObjDraw.geometry.type === 'Polygon' ){
-
-            this.commitData( 'setCurrentMapValue', { field : 'activeModal',      value : true });
+        if( inSelObjDraw.geometry.type === 'LineString' || inSelObjDraw.geometry.type === 'Polygon' ) {
+            this.commitData( 'setCurrentMapValue', { field : 'activeModal', value : true });
             this.commitData( 'setCurrentMapValue', { field : 'activeModalTitle', value : sureMathCalcTitle });
-
             this.commitData( 'setCurrentMapValue', { 
                 field : 'activeConfrmDialogAction', 
                 value : {
@@ -106,127 +94,211 @@ export default class Instrument {
                 } 
             });
         } else {
-
             this.dispatchData( nameAction, inSelObjDraw );
         }
     }
 
     //Удаление объекта
-    setDeleteExistObject( inSelObjDraw ){
+    setDeleteExistObject( inSelObjDraw ) {
         
         const sureDelTitle = lang.getMessages('sureDelObj');
-        const nameAction = 'setActionDelMapObj';
-
-        if( !inSelObjDraw )
+        
+        if( !inSelObjDraw ) {
             inSelObjDraw = ext.getSelectDraw( this.stateData.mapObjListDraw );
-
-        this.commitData( 'setCurrentMapValue', { field : 'activeModal',      value : true });
+        }
+        this.commitData( 'setCurrentMapValue', { field : 'activeModal', value : true });
         this.commitData( 'setCurrentMapValue', { field : 'activeModalTitle', value : sureDelTitle });
-
         this.commitData( 'setCurrentMapValue', { 
             field : 'activeConfrmDialogAction', 
             value : {
-                nameAction : nameAction,
+                nameAction : 'setActionDelMapObj',
                 dataAction : inSelObjDraw
-            } 
+            }
         });
     }
 
     //Клик на карту - проходим по инструментам, смотрим, на какой нажали
-    setPreparePopupProp( inEvent ){
+    async setPreparePopupProp( inEvent ) {
 
+        let curDrawItem = null;
         let inInst = this.stateData.currentInstrument;
-        let selectDrawItem = ext.getSelectDraw(this.stateData.mapObjListDraw);
-        
-        let dataDrawArr = this.stateData.mapObjListDraw.getAll().features;
-        let curDrawItem = dataDrawArr[ dataDrawArr.length - 1 ];
+        let selectDrawItem = ext.getSelectDraw( this.stateData.mapObjListDraw );
 
-        //Если нет выбранного объекта в режиме редактирования - выходим
+        try {
+            const dataDrawArr = this.stateData.mapObjListDraw.getAll().features;
+            curDrawItem = dataDrawArr[ dataDrawArr.length - 1 ];
+        } catch(exc) {
+            console.log(exc);
+            curDrawItem = {};
+        }
+
+        const mathCalcHeightWithModel = new MathCalcHeight( 
+            this.stateData.mapModel, 
+            this.stateData.currentMainIndex, 
+            this.stateData.currentAddIndex, 
+            this.stateData.selectedDataCheckArr 
+        );
+
+        //Выходим, если нет объекта в режиме редактирования
         if( !curDrawItem ) 
             return;
         
-        //Линия
-        if ( inInst === 2 && curDrawItem.geometry.coordinates.length >= 2 ) {
-
-            this.setAddPopUp( curDrawItem, [ inEvent.lngLat.lng, inEvent.lngLat.lat ] );
-        }
-        //Полигон
-        else if ( inInst === 3 && curDrawItem.geometry.coordinates[0].length > 3 ) {
-
-            let coord  = this.mathCalcHeight.getStartCoord( curDrawItem );
-            this.setAddPopUp( curDrawItem, [ coord[0], coord[1] ] );
+        //Если было произведено "отпускание" мыши - просто перерисывываем форму
+        if( inEvent.type === 'mouseup' ) {
+            if(selectDrawItem) this.setImagesForDrawObjects( selectDrawItem.id );
         } 
-        //Клик на имеющийся объект
-        else if ( selectDrawItem ){
+        //Ну а если был произведен клик - делаем расчеты или открываем всплывающее окно 
+        //else if( inInst ){
+            //Высотная метка
+            if ( inInst === 1 ) {
 
-            this.setImagesForDrawObjects();
-            this.setAddPopUp( curDrawItem , [ inEvent.lngLat.lng, inEvent.lngLat.lat ] );  
-        }
+                let heightsData = 0;
+                let heightsDataText = '';
+                const mathData = await mathCalcHeightWithModel.getHeightsLine( curDrawItem, false, this.stateData.isActiveAddLayer );
+
+                try {
+                    heightsData = mathData.heightsData.inArr[0].toFixed(2);
+                    heightsDataText =  `${lang.getMessages('heightOnPoint')} : ${heightsData}${lang.getMessages('meter')}`
+                } catch(error) {
+                    heightsData = -1;
+                }
+                
+                this.setAddPopUp( curDrawItem, [ inEvent.lngLat.lng, inEvent.lngLat.lat ], heightsData );
+                this.commitData( 'setCurrentMapValue', { field : 'currentInstrument', value : 0 } );
+                this._setDataHeightsToDraw( { heightsData : heightsDataText }, curDrawItem );
+
+                return;
+            }
+            //Обычные метки
+            else if ( inInst > 3 ) {
+                this.commitData( 'setCurrentMapValue', { field : 'currentInstrument', value : inInst } );
+                this._setDataHeightsToDraw( { heightsData : '' }, curDrawItem );
+                return;
+            }
+            //Линия и Полигон
+            else if ( inInst === 2 || inInst === 3 ) {
+
+                if( !curDrawItem.geometry ) return;
+                
+                if( inInst === 2 && curDrawItem.geometry.coordinates.length >= 2 ){
+                    this.setAddPopUp( curDrawItem, [ inEvent.lngLat.lng, inEvent.lngLat.lat ] );
+                } else if ( inInst === 3 && curDrawItem.geometry.coordinates[0].length > 3 ){
+                    let coord  = this.mathCalcHeight.getStartCoord( curDrawItem );
+                    this.setAddPopUp( curDrawItem, [ coord[0], coord[1] ] );
+                }
+            }
+            //Клик на имеющийся объект
+            else if ( selectDrawItem ) {
+                this.setImagesForDrawObjects( selectDrawItem.id );
+                const curDrawList = this.getFetureList( selectDrawItem.id );
+                curDrawItem = curDrawList.length>0 ? this.getFetureList( selectDrawItem.id )[0] : selectDrawItem;
+                this.setAddPopUp( curDrawItem, [ inEvent.lngLat.lng, inEvent.lngLat.lat ] );  
+            }
+        //}        
     }
     
-    //Двойной клик на карту - смотрим, попали ли на какой-нибудь инструмент 
-    async setRequestActionInstr( inSelDraw ){
+    //Двойной клик на карту - смотрим, попали ли на какой-нибудь объект 
+    async setRequestActionInstr( inSelDraw ) {
         
         //Перегружаем сервис вычислений
-        let mathCalcHeightWithModel = new MathCalcHeight( this.stateData.mapModel, this.stateData.currentMainIndex, this.stateData.currentAddIndex );
-        let measurItem = this.stateData.currentInstrument;
+        let resMathData = null;
+        const measurItem = this.stateData.currentInstrument;
+        const mathCalcHeightWithModel = new MathCalcHeight(
+            this.stateData.mapModel, 
+            this.stateData.currentMainIndex, 
+            this.stateData.currentAddIndex, 
+            this.stateData.selectedDataCheckArr 
+        );
+        this.commitData( 'setCurrentMapValue', { field : 'show3DPanel', value : false });
 
         //Если пусто - выходим
-        if ( !inSelDraw && measurItem === 0 )
-            return;
-
-        //Линия
-        else if ( measurItem === 2 || inSelDraw.geometry.type === 'LineString' ) {
-
-            let resHeights = await mathCalcHeightWithModel.getHeightsLine( inSelDraw );
+        if ( !inSelDraw && measurItem === 0 ) return;
+        
+        const stateSelDraw = this.getFetureList( inSelDraw.id );
+        const {isRecount} = inSelDraw;
+        inSelDraw = ( stateSelDraw && stateSelDraw.length > 0 ) ? stateSelDraw[0] : inSelDraw;
+        
+        //Метки
+        if( measurItem > 3 || inSelDraw.geometry.type === 'Point' ) {
+            if( inSelDraw.chartData ) {
+                const {chartData} = inSelDraw;
+                this.commitData( 'setCurrentMapValue', { field : 'nameObject', value : chartData.name });
+                this.commitData( 'setCurrentMapValue', { field : 'dateObject', value : chartData.date });
+                this.commitData( 'setCurrentMapValue', { field : 'commentObject', value : chartData.heightsData });
+            }
         }
-
+        //Линия
+        if ( measurItem === 2 || inSelDraw.geometry.type === 'LineString' ) {
+            if( inSelDraw.chartData && !isRecount ) {
+                buildChart.addTwoDimGraph( inSelDraw.chartData.heightsData, null );
+            } else {
+                resMathData = await mathCalcHeightWithModel.getHeightsLine( inSelDraw, false, this.stateData.isActiveAddLayer );                    
+            }
+        }
         //Полигон
-        else if ( measurItem === 3 || inSelDraw.geometry.type === 'Polygon' )
-            await mathCalcHeightWithModel.getVolume( inSelDraw );        
+        else if ( measurItem === 3 || inSelDraw.geometry.type === 'Polygon' ) {
+            if( this.stateData.is3dVolume && inSelDraw.chartData.useThreeDCheck ) {
+                this.commitData( 'setCurrentMapValue', { field : 'show3DPanel', value : true });  
+            }
+            if( inSelDraw.chartData && !isRecount ) {
+                if( inSelDraw.chartData.useThreeDCheck ) {
+                    this.commitData( 'setCurrentMapValue', { field : 'show3DPanel', value : true });  
+                    buildChart.addThreeDimGraph( inSelDraw.chartData.heightsData, null );
+                } else {
+                    buildChart.addTwoDimVoluemGraph( inSelDraw.chartData.heightsData, null );
+                }
+            } else {
+                resMathData = await mathCalcHeightWithModel.getVolume( inSelDraw, false, this.stateData.isActiveAddLayer, this.stateData.is3dVolume );
+            }
+        }     
+
+        //Добавляем результат расчета к общей коллекции элементов
+        this._setDataHeightsToDraw( resMathData, inSelDraw );
+    }   
+
+    //Добавляем полученные данные к текущему объекту, обновляем общую коллекцию 
+    _setDataHeightsToDraw( inResMathData, inDrawSel ) {
+        if( inResMathData ) {
+            const objListServer = this.stateData.mapObjListServer || [];
+            inDrawSel.measurItem = this.stateData.currentInstrument;
+            inDrawSel.chartData = inResMathData;
+
+            this.commitData( 'setCurrentMapValue', { field : 'mapObjListServer', value : [ ...objListServer, inDrawSel ] });
+            //Заносим в хранилище Id вызванного объекта
+            this.commitData( 'setCurrentMapValue', { field : 'instrumentCurrentId', value : inDrawSel.id });  
+        }      
     }
 
     //Замена дефолтовых маркеров на более красивые
-    setImagesForDrawObjects( inDrawId ){
-        
+    setImagesForDrawObjects( inDrawId ) {
+
         const inMapObj = this.stateData.curMap;
-
         this._deleteSorceAndLayersFromMap( inDrawId );
-
         const inIsMarkersActive = this.stateData.isMarkersActive;
         const inIsMeasureActive = this.stateData.isMeasureActive;
         const inTblMapObj = this.stateData.mapObjListTable;
-        const inListOfColors  = ext.getListColor();
-        const featureDrawList =  this.getFetureList( inDrawId );
-
-        if( !featureDrawList )
-            return;
+        const inListOfColors = ext.getListColor();
+        const featureDrawList = this.getFetureList( inDrawId );
+      
+        if( !featureDrawList || !inMapObj ) return;
 
         featureDrawList.forEach( item => {
-            
-            if( item ){
 
+            if( item ) {
                 let imgForDraw = '';
                 let drawType = item.geometry.type;
                 let drawCoord = item.geometry.coordinates;
-                let drawTypeView = item.properties.typeView;
+                let drawTypeView = item.properties.type;
                 let inColor  = ext.getValueFromNum( inListOfColors, item.properties.numColor );
                 let isReport = item.properties.isReport !== null ? item.properties.isReport : true;
-                
-                if( inTblMapObj ){
-
-                    let elemFromTblMapObj = inTblMapObj.find( x => x.id === item.id );
+                if( inTblMapObj ) {
+                    const elemFromTblMapObj = inTblMapObj.find( x => x.id === item.id );
                     inColor  = elemFromTblMapObj ? ext.getValueFromNum( inListOfColors, elemFromTblMapObj.numColor ) : inListOfColors[0].value;
                     isReport = elemFromTblMapObj ? elemFromTblMapObj.isReport : false;
                 }
-
-                if( drawType !== 'LineString' && drawType !== 'Polygon' && drawTypeView && inIsMarkersActive ){
-
-                    //imgForDraw = require(`content/images/${drawTypeView}Draw.png`);
-                    imgForDraw = require(`content/images/${drawTypeView}.png`);
-                    
+                if( drawType !== 'LineString' && drawType !== 'Polygon' && drawTypeView && inIsMarkersActive ) {
+                    imgForDraw = require(`content/images/${drawTypeView}Draw.png`);
                     inMapObj.loadImage( imgForDraw, ( error, image ) => {
-                        
                         inMapObj.addImage( `imgDraw${item.id}`, image );
                         inMapObj.addLayer({
                             id   : `points${item.id}`,
@@ -246,43 +318,38 @@ export default class Instrument {
                             },
                             layout : {
                                 'icon-image' : `imgDraw${item.id}`,
-                                'icon-size'  : 0.75
+                                'icon-size' : 0.75
                             }
                         });
                     });
-
                 } else {
-                    
-                    if( isReport && inIsMeasureActive ){
-
-                        if ( drawType === 'LineString' ){
-
+                    if( isReport && inIsMeasureActive ) {
+                        if ( drawType === 'LineString' ) {
                             inMapObj.addLayer({
-                                    "id" : `lineObj${item.id}`,
-                                    "type" : "line",
-                                    "source" : {
-                                        "type" : "geojson",
-                                        "data" : {
-                                            "type" : "Feature",
-                                            "properties" : {},
-                                            "geometry" : {
-                                                "type" : "LineString",
-                                                "coordinates" : item.geometry.coordinates
-                                            }
+                                "id" : `lineObj${item.id}`,
+                                "type" : "line",
+                                "source" : {
+                                    "type" : "geojson",
+                                    "data" : {
+                                        "type" : "Feature",
+                                        "properties" : {},
+                                        "geometry" : {
+                                            "type" : "LineString",
+                                            "coordinates" : item.geometry.coordinates
                                         }
-                                    },
-                                    "layout" : {
-                                        "line-join" : "round",
-                                        "line-cap"  : "round"
-                                    },
-                                    "paint" : {
-                                        "line-color" : inColor,
-                                        "line-width" : 5
                                     }
-                                });
-    
+                                },
+                                'layout' : {
+                                    'line-join' : 'round',
+                                    'line-cap' : 'round'
+                                },
+                                'paint' : {
+                                    'line-color' : inColor,
+                                    'line-opacity' : 0.5,
+                                    'line-width' : 5
+                                }
+                            });
                         } else {
-                            
                             inMapObj.addLayer({
                                 "id" :  `polygonObj${item.id}`,
                                 "type" : "fill",
@@ -297,10 +364,10 @@ export default class Instrument {
                                         }
                                     }
                                 },
-                                "layout" : { },
-                                "paint"  : {
-                                    'fill-color'   : inColor,
-                                    'fill-opacity' : 0.5
+                                'layout' : {},
+                                'paint' : {
+                                    'fill-color' : inColor,
+                                    'fill-opacity' : 0.35
                                 }
                             });
                         }
@@ -311,16 +378,28 @@ export default class Instrument {
     }
 
     //Меняем видимость объектов класса mapBoxDraw на карте
-    setToggleDrawObjFromMap( isShow ){
+    setToggleDrawObjFromMap( isShow ) {
+        
+        this._deleteAllPopup();
 
-        const inMapObj  = this.stateData.curMap; 
+        const inMapObj = this.stateData.curMap;
         const mapStyles = inMapObj.getStyle();
         const circleLayerArr = mapStyles.layers.filter( i => {    
-            if( i.source )
+            if( i.source ) {
                 return i.source.match(/mapbox-gl-draw*/);
-            else
+            }
+            else {
                 return null;
+            }
         });
+
+        if( ( this.stateData.mapObjListServer || []).length > 0 ){
+            const firstDrawItem = this.stateData.mapObjListServer[0];
+            const {measurItem} = firstDrawItem;
+            //if( measurItem === 2 || measurItem === 3) {
+                this.stateData.mapObjListDraw.changeMode( 'direct_select', { featureId : firstDrawItem.id } );
+            //}
+        }
 
         circleLayerArr.forEach( x => inMapObj.setLayoutProperty( x.id, 'visibility', isShow ? 'visible' : 'none' ) );
         this._deleteAllPopup();
@@ -328,41 +407,37 @@ export default class Instrument {
 
     //Закрываем все поповеры
     _deleteAllPopup(){
-
         document.querySelectorAll('.mapboxgl-popup-content').forEach( x=> x.remove() );
         document.querySelectorAll('.mapboxgl-popup-tip').forEach( x=> x.remove() );
     }
 
     //Удаление всех нарисованных меток
-    _deleteSorceAndLayersFromMap( inElemId ){
+    _deleteSorceAndLayersFromMap( inElemId ) {
 
+        let circleLayerArr = [];
         const inMapObj  = this.stateData.curMap;
         
         if( !inMapObj ) 
             return;
 
         const mapStyles = inMapObj.getStyle();
-        let circleLayerArr = [];
+        
+        if( !mapStyles  ) 
+            return;
 
         //Находим все слои, что означают точки, линии и полигоны
-        if( !inElemId ){
-
+        if( !inElemId ) {
             circleLayerArr = mapStyles.layers.filter( x => 
-                
                 ( x.type === 'symbol' || x.id.match(/lineObj.*/) || x.id.match(/polygonObj*/) )
             );
-        }
-        else {
-
+        } else {
             circleLayerArr = mapStyles.layers.filter( x => 
-                
-                ( x.id.indexOf(inElemId) != -1 )
+                ( x.id.indexOf(inElemId) !== -1 )
             );
         }
 
-        //Удаляем все эти точки
+        //Удаляем все эти точки`
         circleLayerArr.forEach(x => {
-
             inMapObj.removeLayer(x.id);
             inMapObj.removeSource(x.source);
         });
@@ -370,29 +445,91 @@ export default class Instrument {
         //И закрываем поповеры
         this._deleteAllPopup();
     }
+    
+    setImagesForReportDrawObjects( inMapObj, featureDrawItem ) {
+
+        this._deleteSorceAndLayersFromMap( inMapObj );
+        
+        if( featureDrawItem ) {
+            let color = "#00ff00";
+            const type = featureDrawItem.geometry.type;
+            if ( type === 'LineString' ) {
+                inMapObj.addLayer({
+                    "id": `lineObj${featureDrawItem.id}`,
+                    "type": "line",
+                    "source": {
+                        "type": "geojson",
+                        "data": {
+                            "type": "Feature",
+                            "properties": {},
+                            "geometry": {
+                                "type": "LineString",
+                                "coordinates" : featureDrawItem.geometry.coordinates
+                            }
+                        }
+                    },
+                    'layout' : {
+                        'line-join' : 'round',
+                        'line-cap' : 'round'
+                    },
+                    'paint' : {
+                        'line-color' : color,
+                        'line-width' : 5
+                    }
+                });
+            }
+            else {
+                inMapObj.addLayer({
+                    "id": `polygonObj${i}`,
+                    "type": "fill",
+                    "source": {
+                        "type": "geojson",
+                        "data": {
+                            "type": "Feature",
+                            "properties": {},
+                            "geometry": {
+                                "type": "Polygon",
+                                "coordinates" : featureDrawItem.geometry.coordinates
+                            }
+                        }
+                    },
+                    "layout": {},
+                    "paint": {
+                        'fill-color': color,
+                        'fill-opacity': 0.5
+                    }
+                });
+            }
+        }
+    }
 
     //Активация поповера
-    setAddPopUp( drawItem, xyCoord ){
+    setAddPopUp( drawItem, xyCoord, textPopUp ) {
 
         if ( !drawItem ) 
             return;
 
-        let _draw = Array.isArray(drawItem) ? drawItem[0] : drawItem;
+        let mapPartInfo = '';
+        const _draw = Array.isArray(drawItem) ? drawItem[0] : drawItem;
+        
+        if( !_draw.geometry ) return;
 
-        if( !xyCoord ){
+        textPopUp = textPopUp || ( _draw.chartData && _draw.chartData.name );
+        const currentText = textPopUp || lang.getMessages('noComment');
 
+        if( !xyCoord ) {
             switch ( _draw.geometry.type ) {
-
-             case 'Polygon'    : xyCoord = _draw.geometry.coordinates[0][0]; break;
-             case 'LineString' : xyCoord = _draw.geometry.coordinates[0];    break;
-             default           : xyCoord = _draw.geometry.coordinates;
+                case 'Polygon' : xyCoord = _draw.geometry.coordinates[0][0]; break;
+                case 'LineString' : xyCoord = _draw.geometry.coordinates[0];    break;
+                default : xyCoord = _draw.geometry.coordinates;
             }
         }
 
-        const mapPartInfo = _draw.geometry.type !== 'Point' ?
-            this.mathCalcHeight.getTotalDistanceStr( _draw, true ) :
-            ( _draw.properties.pointInfo != undefined ) ? 
-                _draw.properties.pointInfo : lang.getMessages('noComment');
+        if( _draw.geometry.type !== 'Point' ) {
+            mapPartInfo = this.mathCalcHeight.getTotalDistanceStr( _draw, true );
+        } else {
+            mapPartInfo = ( _draw.properties.pointInfo !== undefined ) ? _draw.properties.pointInfo : currentText;
+        }
 
         //Закрываем поповеры
         this._deleteAllPopup();
