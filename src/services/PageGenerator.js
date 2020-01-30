@@ -1,4 +1,5 @@
-import html2canvas from "html2canvas";
+import html2canvas from 'html2canvas'
+import buildChart from 'services/BuildChart'
 
 export default class PageGenerator {
     //Формируем первую страницу "Введение"
@@ -60,7 +61,7 @@ export default class PageGenerator {
     //Получаем страницу "карта обьектов"
     static async getMainMapPage(snapshotMap, mapObjectTxt) {
         return new Promise(function (resolve) {
-            try{
+            try {
                 let pages = new Array();
 
                 const txt = "Карта объекта";
@@ -72,7 +73,7 @@ export default class PageGenerator {
                     }
                 ];
                 pages.push(header);
-    
+
                 let dataUrl = require("mapbox-print-canvas");
                 dataUrl
                     .build()
@@ -88,7 +89,7 @@ export default class PageGenerator {
                             }
                         ];
                         pages.push(img);
-    
+
                         const endTxt = [
                             { text: "Объект мониторинга", style: "subheader" },
                             { text: mapObjectTxt }
@@ -98,7 +99,7 @@ export default class PageGenerator {
                         resolve(pages);
                     });
             }
-            catch(e){
+            catch (e) {
                 console.error(e);
             }
         });
@@ -107,7 +108,7 @@ export default class PageGenerator {
     //Получаем страницу "карта высот"
     static async getColorMapPage(snapshotMap) {
         return new Promise(function (resolve, reject) {
-            try{
+            try {
                 let pages = new Array();
 
                 const txt = "Карта высот";
@@ -119,7 +120,7 @@ export default class PageGenerator {
                     }
                 ];
                 pages.push(header);
-    
+
                 const headTxt = [
                     {
                         text:
@@ -127,7 +128,7 @@ export default class PageGenerator {
                     }
                 ];
                 pages.push(headTxt);
-    
+
                 let dataUrl = require("mapbox-print-canvas");
                 dataUrl
                     .build()
@@ -143,11 +144,11 @@ export default class PageGenerator {
                             }
                         ];
                         pages.push(img);
-    
+
                         resolve(pages);
                     });
             }
-            catch(e){
+            catch (e) {
                 reject(e);
             }
         });
@@ -157,10 +158,10 @@ export default class PageGenerator {
     static async getChangesPage(imgUrl, imgScaleUrl) {
         const current = this;
         return new Promise(async function (resolve, reject) {
-            try{
-                const changesImg = await current._getChangesImg(imgUrl, false);
-                const changesScaleImg = await current._getChangesImg(imgScaleUrl, true);
-    
+            try {
+                const changesImg = await current._getImg(imgUrl, false);
+                const changesScaleImg = await current._getImg(imgScaleUrl, true);
+
                 const page = [
                     {
                         pageBreak: "before",
@@ -169,7 +170,7 @@ export default class PageGenerator {
                     },
                     {
                         image: changesImg,
-                        width: 380,
+                        width: 390,
                         height: 290,
                         alignment: "center"
                     },
@@ -182,46 +183,75 @@ export default class PageGenerator {
                 ];
                 resolve(page);
             }
-            catch(e){
+            catch (e) {
                 reject(e)
             }
         });
     }
 
-    static async _getChangesImg(imgUrl, isScale) {
+    static async get3DPage(imgUrl){
+        const current = this;
+        return new Promise(async function (resolve, reject) {
+            try {
+                const changesImg = await current._getImg(imgUrl, false);
+
+                const page = [
+                    {
+                        pageBreak: "before",
+                        text: "3D-модель",
+                        style: "header"
+                    },
+                    {
+                        text: "В системе доступна 3D-модель площадки и 3D-облако точек."
+                    },
+                    {
+                        image: changesImg,
+                        width: 390,
+                        height: 290,
+                        alignment: "center"
+                    },
+                ];
+                resolve(page);
+            }
+            catch (e) {
+                reject(e)
+            }
+        });
+    }
+
+    static async _getImg(imgUrl, isScale) {
         return new Promise(function (resolve, reject) {
-            try{
+            try {
                 var image = new Image(390, 290);
                 image.onload = function () {
                     var canvas = document.createElement('canvas');
                     if (!isScale) {
-                        canvas.width = 900;
-                        canvas.height = 700;
+                        canvas.width = 1750;
+                        canvas.height = 1400;
                     }
-    
+
                     canvas.getContext('2d').drawImage(this, 0, 0);
                     const url = canvas.toDataURL("image/png");
                     delete canvas.image;
-    
+
                     resolve(url);
                 };
-    
+
                 image.src = imgUrl;
             }
-            catch(e){
+            catch (e) {
                 reject(e);
             }
         });
     }
 
     //Будем получать страницу геоплана
-    //Нужно реализовать
     static async getGeoPlan(snapshotMap) {
 
     }
 
-    static async volumePage(math, polygons) {
-        try{
+    static async volumePage( math, polygons ) {
+        try {
             let pages = new Array();
             for (const item of polygons) {
                 const header = [{
@@ -230,29 +260,60 @@ export default class PageGenerator {
                     style: "header"
                 }];
                 pages.push(header);
-    
+
                 const subheader = [
                     {
                         text: item.properties.name,
                         style: "subheader"
                     }];
                 pages.push(subheader);
-    
-                const info = await math.getVolume(item, true);
-    
-                const perimetr = { text: ["Периметр: ", { text: info.perimetr + " m", color: "blue" }] };
-                const area = { text: ["Площадь: ", { text: info.area + " m^2", color: "blue" }] };
-                const totalVolume = { text: ["Общий объем извлеченого грунта: ", { text: info.totalVolume + " m^3", color: "blue" }] };
-    
-                const averageVolume = { text: ["Cреднее значение извлеченного грунта за заданные даты: ", { text: info.averageVolume + " m^3", color: "blue" }] };
-    
+
+                const { heightsData } = item.chartData;
+                const reportObject = { id : item.id };
+
+                buildChart.addTwoDimVoluemGraph( heightsData, reportObject );
+
+                //Добавляем 'аналитический' график, что показывает разницу с предыдущей величиной объема
+                const upHeightsData = heightsData.map( (item,index)=> {
+                    return {
+                        dataVolume : item.dataVolume,
+                        diffVolume : ( index > 0 ) ? +(Math.abs( item.volume - heightsData[ index - 1 ].volume )).toFixed(2) : 0,
+                        volume : +item.volume.toFixed(2)
+                    }
+                });
+                let bodyTable = [
+                    [
+                        { text: 'Дата', style: 'tableHeader' }, 
+                        { text: 'Объем', style: 'tableHeader' }, 
+                        { text: 'Разница с последней съемкой', style: 'tableLastHeader' }
+                    ]
+                ];
+                const upHeightsDataArr = upHeightsData.map(item=>{
+                    return [
+                        { text: item.dataVolume, margin: [0, 10, 0, 0] },
+                        { text: item.volume, margin: [0, 10, 0, 0] },
+                        { text: item.diffVolume, margin: [0, 10, 0, 0] }
+                    ]
+                });
+                
+                bodyTable = [ ...bodyTable, ...upHeightsDataArr ];
+                
+                
+                const diffVolumeArr = upHeightsData.map(x=>x.diffVolume);
+                const totalValue = diffVolumeArr.reduce( (x,y)=> x+y, 0 );
+                const middleValue = totalValue/diffVolumeArr.length;
+
+                // const info = await math.getVolume( item, true, true, true );
+                // const perimetr = { text: ["Периметр: ", { text: info.perimetr + " m", color: "blue" }] };
+                // // const area = { text: ["Площадь: ", { text: info.area + " m^2", color: "blue" }] };
+
+                const totalVolume = { text: ["Общий объем извлеченого грунта: ", { text: +totalValue.toFixed(2) + " m^3", color: "blue" }] };
+                const averageVolume = { text: ["Cреднее значение извлеченного грунта за заданные даты: ", { text: +middleValue.toFixed(2) + " m^3", color: "blue" }] };
+
                 const txt = [
                     {
                         ul: [
-                            perimetr,
-                            area,
-                            totalVolume,
-                            averageVolume
+                            '', '', totalVolume, averageVolume
                         ],
                         margin: [0, 5]
                     },
@@ -262,7 +323,7 @@ export default class PageGenerator {
                     }
                 ];
                 pages.push(txt)
-    
+
                 await html2canvas(
                     document.querySelector("#graphPlotChart_" + item.id), { logging: false }
                 ).then(canvas => {
@@ -277,64 +338,17 @@ export default class PageGenerator {
                     ];
                     pages.push(pageImg);
                 });
-    
+
                 const table = [{
-                    style: 'tableExample',
-                    table: {
+                    style : 'tableExample',
+                    table : {
                         headerRows: 1,
                         dontBreakRows: true,
                         widths: [160, 160, 160],
                         heights: 30,
-                        body: [
-                            [{ text: 'Дата', style: 'tableHeader' }, { text: 'Объем', style: 'tableHeader' }, { text: 'Разница с последней съемкой', style: 'tableLastHeader' }],
-                            [
-                                { text: '27.10.2018', margin: [0, 10, 0, 0] },
-                                { text: '205 972,28', margin: [0, 10, 0, 0] },
-                                { text: '22 200,21', margin: [0, 10, 0, 0] },
-                            ],
-                            [
-                                { text: '27.10.2018', margin: [0, 10, 0, 0] },
-                                { text: '205 972,28', margin: [0, 10, 0, 0] },
-                                { text: '22 200,21', margin: [0, 10, 0, 0] },
-                            ],
-                            [
-                                { text: '27.10.2018', margin: [0, 10, 0, 0] },
-                                { text: '205 972,28', margin: [0, 10, 0, 0] },
-                                { text: '22 200,21', margin: [0, 10, 0, 0] },
-                            ],
-                            [
-                                { text: '27.10.2018', margin: [0, 10, 0, 0] },
-                                { text: '205 972,28', margin: [0, 10, 0, 0] },
-                                { text: '22 200,21', margin: [0, 10, 0, 0] },
-                            ],
-                            [
-                                { text: '27.10.2018', margin: [0, 10, 0, 0] },
-                                { text: '205 972,28', margin: [0, 10, 0, 0] },
-                                { text: '22 200,21', margin: [0, 10, 0, 0] },
-                            ],
-                            [
-                                { text: '27.10.2018', margin: [0, 10, 0, 0] },
-                                { text: '205 972,28', margin: [0, 10, 0, 0] },
-                                { text: '22 200,21', margin: [0, 10, 0, 0] },
-                            ],
-                            [
-                                { text: '27.10.2018', margin: [0, 10, 0, 0] },
-                                { text: '205 972,28', margin: [0, 10, 0, 0] },
-                                { text: '22 200,21', margin: [0, 10, 0, 0] },
-                            ],
-                            [
-                                { text: '27.10.2018', margin: [0, 10, 0, 0] },
-                                { text: '205 972,28', margin: [0, 10, 0, 0] },
-                                { text: '22 200,21', margin: [0, 10, 0, 0] },
-                            ],
-                            [
-                                { text: '27.10.2018', margin: [0, 10, 0, 0] },
-                                { text: '205 972,28', margin: [0, 10, 0, 0] },
-                                { text: '22 200,21', margin: [0, 10, 0, 0] },
-                            ],
-                        ]
+                        body: bodyTable
                     },
-                    layout: {
+                    layout : {
                         defaultBorder: true,
                         borderColor: 'white',
                         textAlign: 'center',
@@ -348,118 +362,113 @@ export default class PageGenerator {
                 }];
                 pages.push(table);
             }
-    
             return pages;
         }
-        catch(e){
+        catch (e) {
             ///not sure may be need redo all method for promise
             console.log(e);
         }
     }
 
     //Страница профиль поверхности для линий
-    static async surfacePage(map, math, line, layersDate) {
-        const current = this;
-        return new Promise(async function (resolve, reject) {
-            try {
-                let pages = new Array();
+    static async surfacePage( mapObj ) {
+        try {
+            const [ { lineItem }, pages ] = [ mapObj, [] ];
+            const header = [{
+                pageBreak : 'before',
+                text : 'Профиль поверхности',
+                style : 'header'
+            }];
+            const objName = [{
+                text : lineItem.properties.name,
+                style : 'subheader'
+            }];
+            pages.push(header);
+            pages.push(objName);
 
-                const header = [
-                    {
-                        pageBreak: "before",
-                        text: "Профиль поверхности",
-                        style: "header"
-                    }
-                ];
-                pages.push(header);
-
-                const objName = [
-                    {
-                        text: line.properties.name,
-                        style: "subheader"
-                    }];
-                pages.push(objName);
-
-                const coords = { type: "line", array: line.geometry.coordinates };
-                const heights = await math.getHeightsLine(line, true);
-
-                const obj = { map: map, coords };
-                const img = await current._flyToSurface(obj);
-                pages.push(img);
-
-                if (heights.length == 2 && heights[0] && heights[1]) {
-                    const diffOfMax = (heights[0].max - heights[1].max).toFixed(2);
-                    const diffOfMin = (heights[0].min - heights[1].min).toFixed(2);
-                    const diffOfAverage = (heights[0].aver - heights[1].aver).toFixed(2);
-
-                    const pageValues = [
-                        {
-                            text: ["Максимальная высота за " + layersDate.mainDate + ": ", { text: heights[0].max + "m", color: "blue" }, ", за " + layersDate.additionalDate + ": ", { text: heights[1].max + "m", color: "blue" }, ", разность: ", { text: diffOfMax + "м", color: "blue" }],
-                            margin: [0, 5]
-                        },
-                        {
-                            text: ["Минимальная высота за " + layersDate.mainDate + ": ", { text: heights[0].min + "m", color: "blue" }, ", за " + layersDate.additionalDate + ": ", { text: heights[1].min + "m", color: "blue" }, ", разность: ", { text: diffOfMin + "m", color: "blue" }],
-                            margin: [0, 5]
-                        },
-                        {
-                            text: ["Средняя высота за " + layersDate.mainDate + ": ", { text: heights[0].aver + "m", color: "blue" }, ", за " + layersDate.additionalDate + ": ", { text: heights[1].aver + "m", color: "blue" }, ", разность: ", { text: diffOfAverage + "m", color: "blue" }],
-                            margin: [0, 5]
-                        }
-                    ];
-                    pages.push(pageValues);
-                }
-
-                html2canvas(
-                    document.querySelector("#graphPlotChart_" + line.id), { logging: false }
-                ).then(canvas => {
-                    const pageImg = [
-                        {
-                            image: canvas.toDataURL("image/png"),
-                            width: 390,
-                            height: 290,
-                            alignment: "center"
-                        }
-                    ];
-
-                    pages.push(pageImg);
-                });
-
-                resolve(pages);
-            }
-            catch (e) { reject(e); }
-        });
+            // var s = await this._flyToSurface(mapObj);
+            // pages.push( s );
+            
+            //const heights = lineItem.chartData.heightsData.inArr;
+            const reportObject = { id : lineItem.id };
+            buildChart.addTwoDimGraph( lineItem.chartData.heightsData, reportObject );
+            // if ( heights.length > 1 ) {
+            //     const diffOfMax = ( heights[0].max - heights[1].max ).toFixed(2);
+            //     const diffOfMin = ( heights[0].min - heights[1].min ).toFixed(2);
+            //     const diffOfAverage = ( heights[0].aver - heights[1].aver ).toFixed(2);
+            //     const pageValues = [
+            //         {
+            //             text: ["Максимальная высота за " + layersDate.mainDate + ": ", { text: heights[0].max + "m", color: "blue" }, ", за " + layersDate.additionalDate + ": ", { text: heights[1].max + "m", color: "blue" }, ", разность: ", { text: diffOfMax + "м", color: "blue" }],
+            //             margin: [0, 5]
+            //         },
+            //         {
+            //             text: ["Минимальная высота за " + layersDate.mainDate + ": ", { text: heights[0].min + "m", color: "blue" }, ", за " + layersDate.additionalDate + ": ", { text: heights[1].min + "m", color: "blue" }, ", разность: ", { text: diffOfMin + "m", color: "blue" }],
+            //             margin: [0, 5]
+            //         },
+            //         {
+            //             text: ["Средняя высота за " + layersDate.mainDate + ": ", { text: heights[0].aver + "m", color: "blue" }, ", за " + layersDate.additionalDate + ": ", { text: heights[1].aver + "m", color: "blue" }, ", разность: ", { text: diffOfAverage + "m", color: "blue" }],
+            //             margin: [0, 5]
+            //         }
+            //     ];
+            //     pages.push(pageValues);
+            // }
+            await html2canvas(
+                document.querySelector("#graphPlotChart_" + lineItem.id), { logging: false }
+            ).then(canvas => {
+                const pageImg = [{
+                    image : canvas.toDataURL("image/png"),
+                    width : 390,
+                    height : 290,
+                    alignment : 'center'
+                }];
+                pages.push(pageImg);
+            });
+            return pages;
+        }
+        catch (e) { 
+            console.log(e);
+            return null; 
+        }
     }
 
     //Перемещаемся непосредственно к фигуре, которую будем наблюдать на графике
-    static async _flyToSurface(obj) {
-        const current = this;
-        return new Promise(function (resolve, reject) {
+    //26.03.2019 - на текущий момент перестали использовать данную функцию, в будущем,
+    //если в обозримом будущем она не понадобится - удалить. (Это же касается и функции _calcCenterOfObject)
+    static async _flyToSurface( mapObj ) {
+        return new Promise( (resolve, reject)=> {
             try {
-                const center = current._calcCenterOfObject(obj.coords);
+                
+                const { instrument, snapshotMap, lineItem } = mapObj;
+                const coords = { 
+                    type : 'line', 
+                    array : lineItem.geometry.coordinates 
+                };
+                const center = this._calcCenterOfObject( coords );
 
-                obj.map.flyTo({
-                    center: [center.x, center.y],
-                    zoom: 15
+                snapshotMap.flyTo({
+                    center : [ center.x, center.y ],
+                    zoom : 14.1
                 });
+              
+                snapshotMap.on( 'moveend', ()=>{
 
-                obj.map.on("moveend", async function () {
-                    let dataUrl = require("mapbox-print-canvas");
+                    instrument.setImagesForReportDrawObjects( snapshotMap, lineItem );
+                    const dataUrl = require('mapbox-print-canvas');
+                    
                     dataUrl
                         .build()
-                        .format("a4")
-                        .print(obj.map, mapboxgl)
-                        .then(url => {
-                            const img = [
-                                {
+                        .format('a4')
+                        .print( snapshotMap, mapboxgl )
+                        .then( url => {
+                                const img = [{
                                     image: url,
                                     width: 270,
                                     height: 320,
-                                    alignment: "center"
-                                }
-                            ];
-
-                            resolve(img);
-                        }).catch(e => reject(e));
+                                    alignment : 'center'
+                                }];
+                                resolve(img);
+                            }
+                        ).catch(e => reject(e));
                 });
             }
             catch (e) { reject(e); }
