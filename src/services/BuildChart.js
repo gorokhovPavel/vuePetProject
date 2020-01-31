@@ -1,6 +1,7 @@
 import lang from 'language/Translate'
 
 export default class BuildChart {
+
     //simple profile chart
     static addTwoDimGraph( inHeightsData, reportObject ) {
         const { inArr, distanseLine, stepLine } = inHeightsData;
@@ -24,7 +25,7 @@ export default class BuildChart {
                 x : 0,
                 y : -0.2,    
                 orientation : 'h',
-                traceorder  : 'normal'
+                traceorder : 'normal'
             },
             margin: {
                 l : 50,
@@ -34,10 +35,10 @@ export default class BuildChart {
             }
         };
         if( reportObject ) {
-            Plotly.newPlot('graphPlotChart_' + reportObject.id, traceArr, layout, { displayModeBar: false });
+            Plotly.newPlot('graphPlotChart_' + reportObject.id, traceArr, layout, { displayModeBar : false });
         }
         else {
-            Plotly.newPlot('graphPlotChart', traceArr, layout, { displayModeBar: false });
+            Plotly.newPlot('graphPlotChart', traceArr, layout, { displayModeBar : false });
         }
     }
 
@@ -124,10 +125,10 @@ export default class BuildChart {
             bargroupgap : 0.1
         };
         if( reportObject ) {
-            Plotly.newPlot('graphPlotChart_' + reportObject.id, traceArr, layout, { displayModeBar: false });    
+            Plotly.newPlot( 'graphPlotChart_' + reportObject.id, traceArr, layout, { displayModeBar: false } );    
         }
         else {
-            Plotly.newPlot('graphPlotChart', traceArr, layout, { displayModeBar: false });
+            Plotly.newPlot( 'graphPlotChart', traceArr, layout, { displayModeBar: false } );
         }
     }
 
