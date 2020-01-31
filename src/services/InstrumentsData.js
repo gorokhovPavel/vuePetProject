@@ -273,7 +273,7 @@ export default class Instrument {
     setImagesForDrawObjects( inDrawId ) {
 
         const inMapObj = this.stateData.curMap;
-        this._deleteSorceAndLayersFromMap( inDrawId );
+        this._deleteSorceAndLayersFromMap( inDrawId, null );
         const inIsMarkersActive = this.stateData.isMarkersActive;
         const inIsMeasureActive = this.stateData.isMeasureActive;
         const inTblMapObj = this.stateData.mapObjListTable;
@@ -283,19 +283,21 @@ export default class Instrument {
         if( !featureDrawList || !inMapObj ) return;
 
         featureDrawList.forEach( item => {
-
             if( item ) {
+
                 let imgForDraw = '';
                 let drawType = item.geometry.type;
                 let drawCoord = item.geometry.coordinates;
                 let drawTypeView = item.properties.type;
-                let inColor  = ext.getValueFromNum( inListOfColors, item.properties.numColor );
+                let inColor = ext.getValueFromNum( inListOfColors, item.properties.numColor );
                 let isReport = item.properties.isReport !== null ? item.properties.isReport : true;
+
                 if( inTblMapObj ) {
                     const elemFromTblMapObj = inTblMapObj.find( x => x.id === item.id );
                     inColor  = elemFromTblMapObj ? ext.getValueFromNum( inListOfColors, elemFromTblMapObj.numColor ) : inListOfColors[0].value;
                     isReport = elemFromTblMapObj ? elemFromTblMapObj.isReport : false;
                 }
+
                 if( drawType !== 'LineString' && drawType !== 'Polygon' && drawTypeView && inIsMarkersActive ) {
                     imgForDraw = require(`content/images/${drawTypeView}Draw.png`);
                     inMapObj.loadImage( imgForDraw, ( error, image ) => {
@@ -395,9 +397,9 @@ export default class Instrument {
 
         if( ( this.stateData.mapObjListServer || []).length > 0 ){
             const firstDrawItem = this.stateData.mapObjListServer[0];
-            const {measurItem} = firstDrawItem;
+            const { measurItem } = firstDrawItem;
             //if( measurItem === 2 || measurItem === 3) {
-                this.stateData.mapObjListDraw.changeMode( 'direct_select', { featureId : firstDrawItem.id } );
+                //this.stateData.mapObjListDraw.changeMode( 'direct_select', { featureId : firstDrawItem.id } );
             //}
         }
 
@@ -412,18 +414,16 @@ export default class Instrument {
     }
 
     //Удаление всех нарисованных меток
-    _deleteSorceAndLayersFromMap( inElemId ) {
+    _deleteSorceAndLayersFromMap( inElemId, inMapObj ) {
 
         let circleLayerArr = [];
-        const inMapObj  = this.stateData.curMap;
+        const mapObj = inMapObj || this.stateData.curMap;
         
-        if( !inMapObj ) 
-            return;
+        if( !mapObj ) return;
 
-        const mapStyles = inMapObj.getStyle();
+        const mapStyles = mapObj.getStyle();
         
-        if( !mapStyles  ) 
-            return;
+        if( !mapStyles ) return;
 
         //Находим все слои, что означают точки, линии и полигоны
         if( !inElemId ) {
@@ -438,33 +438,44 @@ export default class Instrument {
 
         //Удаляем все эти точки`
         circleLayerArr.forEach(x => {
-            inMapObj.removeLayer(x.id);
-            inMapObj.removeSource(x.source);
+            mapObj.removeLayer(x.id);
+            mapObj.removeSource(x.source);
         });
 
         //И закрываем поповеры
         this._deleteAllPopup();
     }
     
-    setImagesForReportDrawObjects( inMapObj, featureDrawItem ) {
-
-        this._deleteSorceAndLayersFromMap( inMapObj );
-        
+    setImagesForReportDrawObjects( inMapObj, featureDrawItem ) {       
         if( featureDrawItem ) {
-            let color = "#00ff00";
+
+            const defColor = '#00ff00';
+            const color = ext.getValueFromNum( ext.getListColor(), featureDrawItem.properties.numColor ) || defColor;
             const type = featureDrawItem.geometry.type;
+            const objLayerName = `lineObj${featureDrawItem.id}`;
+
+            //this._deleteSorceAndLayersFromMap( null, inMapObj );
+
+            //Находим все слои, что означают текущий нарисованный объект
+            const finderObj = inMapObj.getStyle().layers.filter( x => x.id.match(objLayerName) );
+            
+            if( finderObj.length > 0 ) return;
+
             if ( type === 'LineString' ) {
+
+                this._deleteSorceAndLayersFromMap( null, inMapObj );
+
                 inMapObj.addLayer({
-                    "id": `lineObj${featureDrawItem.id}`,
-                    "type": "line",
-                    "source": {
-                        "type": "geojson",
-                        "data": {
-                            "type": "Feature",
-                            "properties": {},
-                            "geometry": {
-                                "type": "LineString",
-                                "coordinates" : featureDrawItem.geometry.coordinates
+                    'id' : objLayerName,
+                    'type' : 'line',
+                    'source' : {
+                        'type' : 'geojson',
+                        'data' : {
+                            'type' : 'Feature',
+                            'properties' : {},
+                            'geometry' : {
+                                'type' : 'LineString',
+                                'coordinates' : featureDrawItem.geometry.coordinates
                             }
                         }
                     },
@@ -474,27 +485,27 @@ export default class Instrument {
                     },
                     'paint' : {
                         'line-color' : color,
-                        'line-width' : 5
+                        'line-width' : 7
                     }
                 });
             }
             else {
                 inMapObj.addLayer({
-                    "id": `polygonObj${i}`,
-                    "type": "fill",
-                    "source": {
-                        "type": "geojson",
-                        "data": {
-                            "type": "Feature",
-                            "properties": {},
-                            "geometry": {
-                                "type": "Polygon",
-                                "coordinates" : featureDrawItem.geometry.coordinates
+                    'id' : `polygonObj${i}`,
+                    'type' : 'fill',
+                    'source' : {
+                        'type' : 'geojson',
+                        'data' : {
+                            'type' : 'Feature',
+                            'properties' : {},
+                            'geometry' : {
+                                'type' : 'Polygon',
+                                'coordinates' : featureDrawItem.geometry.coordinates
                             }
                         }
                     },
-                    "layout": {},
-                    "paint": {
+                    'layout' : {},
+                    'paint' : {
                         'fill-color': color,
                         'fill-opacity': 0.5
                     }
@@ -506,11 +517,10 @@ export default class Instrument {
     //Активация поповера
     setAddPopUp( drawItem, xyCoord, textPopUp ) {
 
-        if ( !drawItem ) 
-            return;
+        if ( !drawItem ) return;
 
         let mapPartInfo = '';
-        const _draw = Array.isArray(drawItem) ? drawItem[0] : drawItem;
+        const _draw = Array.isArray( drawItem ) ? drawItem[0] : drawItem;
         
         if( !_draw.geometry ) return;
 
