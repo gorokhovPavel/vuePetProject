@@ -13,8 +13,8 @@ export default class AddExtension {
 
     //Возврат значения параметра по номеру в списке
     static getValueFromNum( listOfParam, inNumOfColor ) {
-        let elemColor = listOfParam.find( x => x.id === inNumOfColor );
-        let goodElemColor = elemColor || listOfParam[0];
+        const elemColor = listOfParam.find( x => x.id === inNumOfColor );
+        const goodElemColor = elemColor || listOfParam[0];
         return goodElemColor.value;
     }
 
@@ -29,19 +29,19 @@ export default class AddExtension {
     }
 
     //Выводим ошибку в уведомлялку, скрываем чз некоторе время
-    static setErrorNotification( commit, inErrorText ){
+    static setErrorNotification( commit, inErrorText ) {
 
         commit( 'setCurrentMapValue', { field : 'activeSnack', value : true });
         commit( 'setCurrentMapValue', { field : 'activeSnackError', value : true });
         commit( 'setCurrentMapValue', { field : 'activeSnackTitle', value : inErrorText });
         
         setTimeout( ()=>{
-          commit( 'setCurrentMapValue', { field : 'activeSnack', value : false });
+          commit( 'setCurrentMapValue', { field : 'activeSnack', value : false } );
         }, 2000 );
     }
 
     //Если обработчик ошибок не проставлен - просто заносим ошибку в консоль и отключаем лоадер
-    static _setRequestProcessing( commit, inSetFun, answer ){
+    static _setRequestProcessing( commit, inSetFun, answer ) {
         //Проверка на обработчик
         if( inSetFun ) {
             inSetFun( answer );
@@ -53,16 +53,17 @@ export default class AddExtension {
         if( !answer ) return;
         
         //А-ля интерсептор, провкерка на отсутствие прав доступа
-        if( answer.status === 401 )
+        if( answer.status === 401 ) {
             commit( 'deleteAuthToken' );
+        }
     }
 
     //Из глобального объекта mapbox-gl-draw тянем текущий выбранный, если есть
     static getSelectDraw(draw) {
         let selectesDrawItem = null;
-        try{
+        try {
             selectesDrawItem = draw.getSelected().features[0];
-        } catch(error) {
+        } catch( error ) {
             console.log(error);
         }
         return selectesDrawItem;
@@ -71,8 +72,8 @@ export default class AddExtension {
     //Смотрим, какой группе маркеров или инструментов измерения принадлежит текущий объект
     static getTypeObjForDraw( draw, listOfInst ) {
 
-        let typeDraw = null;
-        let itemInList = null;
+        if(!draw) return;
+        let [ typeDraw, itemInList ] = [ null, null ];
 
         //Смотрим на properties
         if( draw.properties ) {
@@ -101,9 +102,8 @@ export default class AddExtension {
 
     //Разбиваем на массивы "по порядку"
     static getChunksArray(array, size) {
-
-        let results = [];
-        while (array.length) {
+        const results = [];
+        while ( array.length ) {
             results.push(array.splice(0, size));
         }
         return results;
@@ -113,9 +113,9 @@ export default class AddExtension {
     static setParseJsonToData( inJson, zeroMark ) {
         //Входной объект может сразу содержать значения или в только в блоке results
         inJson = inJson.results ? inJson.results : inJson;
-        if( inJson.features )
-            inJson = inJson.features.map( x=>x.properties );
-        let heightCoord = inJson.map( item=> {
+        if( inJson.features ) inJson = inJson.features.map( x=>x.properties );
+        
+        const heightCoord = inJson.map( item=> {
             if( item.height !== null || item.height !== undefined ) {
                 item.height -= zeroMark;
                 return item.height;
@@ -128,17 +128,18 @@ export default class AddExtension {
     static setToggleElem(idName, isHidden) {
         let selElem = document.querySelector(`#${idName}`);
         let setElemDisp = selElem.style.display;
-        if(selElem) {
-            if(!isHidden)
+        if( selElem ) {
+            if( !isHidden ) {
                 selElem.style.display = (setElemDisp != 'none') ? 'none' : 'block';
-            else
+            } else {
                 selElem.style.display = isHidden;
+            }
         }     
     };
   
     //Фильтр...
     static getSearchByValue(items, term) {
-        if(items) {
+        if( items ) {
             return !term ? items : items.filter(
                 item => this.getToLower(item.name)
                     .includes(this.getToLower(term))
@@ -160,5 +161,51 @@ export default class AddExtension {
         const mm = String(today.getMonth() + 1).padStart(2, '0'); //January is 0!
         const yyyy = today.getFullYear();
         return `${dd}.${mm}.${yyyy}`;
+    }
+
+    //строковую дату в Date obj
+    static getDateFromStr(inStrDate) {
+
+        if( !inStrDate ) return;
+        inStrDate = inStrDate.split('.');
+        if( inStrDate.length === 0 ) return;
+        inStrDate = inStrDate.reverse().join('-');
+        inStrDate = new Date(inStrDate);
+        return inStrDate;
+    }
+
+    //создаем табличный объект для отчета
+    static getTAbleForReport( inTblObj ){
+        
+        if( !inTblObj ) return;
+        if( inTblObj.length === 0 ) return;
+
+        const widthFull = 500;
+        const cellCnt = inTblObj[0].length;
+        const widthOneColumn = (widthFull/cellCnt).toFixed(0)
+        const widthSizeArr = inTblObj[0].map( x=> +widthOneColumn );
+
+        const table = [{
+            style : 'tableExample',
+            table : {
+                headerRows : 1,
+                dontBreakRows : true,
+                widths : widthSizeArr,
+                heights : 30,
+                body : inTblObj
+            },
+            layout : {
+                defaultBorder : true,
+                borderColor : 'white',
+                textAlign : 'center',
+                hLineColor : function (i, node) {
+                    return 'white';
+                },
+                vLineColor : function (i, node) {
+                    return 'white';
+                },
+            }
+        }];
+        return table;
     }
 }
