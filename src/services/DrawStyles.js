@@ -1,9 +1,6 @@
 export default class DrawStyles {
-
     static styleMapBoxDrawList() {
-        
         return [
-
             //active points
             {
                 'id' : 'highlight-active-halo-points',
@@ -15,10 +12,9 @@ export default class DrawStyles {
                 'type' : 'circle',
                 'paint' : {
                     'circle-radius': 9,
-                    'circle-color': '#fff'
+                    'circle-color': '#ccc'
                 }
             },
-
             {
                 'id' : 'highlight-active-points',
                 'filter' : ['all',
@@ -32,7 +28,6 @@ export default class DrawStyles {
                     'circle-color': '#0033fd'
                 }
             },
-
             //default points
             {
                 'id': 'points-are-halo-blue',
@@ -47,7 +42,6 @@ export default class DrawStyles {
                   'circle-color': '#00338d'
                 }
             },
-
             {
                 'id': 'points-are-blue',
                 'filter': ['all',
@@ -58,10 +52,9 @@ export default class DrawStyles {
                 'type': 'circle',
                 'paint': {
                   'circle-radius': 4,
-                  'circle-color': '#fff'
+                  'circle-color': '#ccc'
                 }
             },
-
             //points on active lines and polygons
             {
                 'id': 'gl-draw-polygon-and-line-vertex-halo-active',
@@ -72,11 +65,10 @@ export default class DrawStyles {
                     ['==', 'active', 'true']
                 ],
                 'paint': {
-                    'circle-radius' : 5,
+                    'circle-radius' : 7,
                     'circle-color'  : '#0033fd'
                 }
             },
-            
             {
                 'id': 'gl-draw-polygon-and-line-vertex-active',
                 'type': 'circle',
@@ -86,11 +78,10 @@ export default class DrawStyles {
                     ['==', 'active', 'true']
                 ],
                 'paint': {
-                    'circle-radius' : 2,
-                    'circle-color'  : '#fff',
+                    'circle-radius' : 4,
+                    'circle-color'  : '#ccc',
                 }
             },
-
             //points on default lines and polygons
             {
                 'id': 'gl-draw-polygon-and-line-vertex-halo',
@@ -101,11 +92,10 @@ export default class DrawStyles {
                     ['==', 'active', 'false']
                 ],
                 'paint': {
-                    'circle-radius' : 5,
+                    'circle-radius' : 7,
                     'circle-color'  : '#0033fd'
                 }
             },
-            
             {
                 'id': 'gl-draw-polygon-and-line-vertex',
                 'type': 'circle',
@@ -115,11 +105,10 @@ export default class DrawStyles {
                     ['==', 'active', 'false']
                 ],
                 'paint': {
-                    'circle-radius' : 2,
-                    'circle-color'  : '#fff',
+                    'circle-radius' : 4,
+                    'circle-color'  : '#ccc',
                 }
             },
-
             //active lines
             {
                 'id': 'gl-draw-line-active',
@@ -133,12 +122,11 @@ export default class DrawStyles {
                   'line-join': 'round'
                 },
                 'paint': {
-                  'line-color': '#fff',
-                  'line-dasharray': [0.2, 2],
-                  'line-width': 3
+                  'line-color': '#ccc',
+                  'line-dasharray': [0.2, 1.5],
+                  'line-width': 7
                 }
             },
-
             //default Lines
             {
                 'id': 'gl-draw-halo-line-static',
@@ -152,11 +140,10 @@ export default class DrawStyles {
                   'line-join': 'round'
                 },
                 'paint': {
-                  'line-color': '#fff',
-                  'line-width': 4
+                  'line-color': '#ccc',
+                  'line-width': 8
                 }
             },
-
             {
                 'id': 'gl-draw-line-static',
                 'type': 'line',
@@ -173,7 +160,6 @@ export default class DrawStyles {
                   'line-width': 1
                 }
             },
-
             //active polygon fill
             {
                 'id': 'gl-draw-polygon-fill',
@@ -183,12 +169,11 @@ export default class DrawStyles {
                     ['==', 'active', 'false']
                 ],
                 'paint': {
-                    'fill-color': '#fff',
-                    'fill-outline-color': '#fff',
-                    'fill-opacity': 0.2
+                    'fill-color': '#ccc',
+                    'fill-outline-color': '#ccc',
+                    'fill-opacity': 0.4
                 }
             },
-            
             //default polygon fill
             {
                 'id': 'gl-draw-polygon-fill-static',
@@ -203,7 +188,6 @@ export default class DrawStyles {
                     'fill-opacity': 0.1
                 }
             },
-
             //active polygon line
             {
                 'id' : 'gl-draw-polygon-stroke',
@@ -217,12 +201,11 @@ export default class DrawStyles {
                     'line-join': 'round'
                 },
                 'paint' : {
-                    'line-color'     : '#fff',
-                    'line-dasharray' : [0.2, 2],
+                    'line-color'     : '#ccc',
+                    'line-dasharray' : [0.4, 4],
                     'line-width'     : 3
                 }
             },
-
             //default polygon line
             {
                 'id': 'gl-draw-halo-polygon-stroke-static',
@@ -236,11 +219,10 @@ export default class DrawStyles {
                     'line-join': 'round'
                 },
                 'paint': {
-                    'line-color': '#fff',
+                    'line-color': '#ccc',
                     'line-width': 4
                 }
             },
-
             {
                 'id': 'gl-draw-polygon-stroke-static',
                 'type': 'line',
