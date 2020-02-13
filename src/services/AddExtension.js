@@ -180,29 +180,28 @@ export default class AddExtension {
         if( !inTblObj ) return;
         if( inTblObj.length === 0 ) return;
 
-        const widthFull = 500;
+        const widthFull = 435;
         const cellCnt = inTblObj[0].length;
         const widthOneColumn = (widthFull/cellCnt).toFixed(0)
-        const widthSizeArr = inTblObj[0].map( x=> +widthOneColumn );
+        const widthSizeArr = inTblObj[0].map( _=> +widthOneColumn );
 
         const table = [{
             style : 'tableExample',
             table : {
-                headerRows : 1,
-                dontBreakRows : true,
                 widths : widthSizeArr,
                 heights : 30,
-                body : inTblObj
+                body : inTblObj,
+                dontBreakRows : true
             },
             layout : {
                 defaultBorder : true,
-                borderColor : 'white',
+                borderColor : '#00338d',
                 textAlign : 'center',
                 hLineColor : function (i, node) {
-                    return 'white';
+                    return '#00338d';
                 },
                 vLineColor : function (i, node) {
-                    return 'white';
+                    return '#00338d';
                 },
             }
         }];
