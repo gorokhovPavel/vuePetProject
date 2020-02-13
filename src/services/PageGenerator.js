@@ -9,7 +9,7 @@ export default class PageGenerator {
         return [
             {
                 text : "Введение",
-                style : "header"
+                style : "header", 
             },{
                 text : "Цель выполнения работ:",
                 style : "subheader"
@@ -70,10 +70,9 @@ export default class PageGenerator {
 
                         const endTxt = [
                             { text : 'Объект мониторинга', style : 'subheader' },
-                            { text : mapObjectTxt }
+                            { text : mapObjectTxt, style : 'section' }
                         ];
                         pages.push(endTxt);
-
                         resolve(pages);
                     });
             }
@@ -97,7 +96,9 @@ export default class PageGenerator {
                 pages.push(header);
 
                 const headTxt = [{
-                    text : 'В системе доступна цифровая карта высот для всех периодов съемки, на изображении ниже представлен результат за выбранный период'
+                    text : 'В системе доступна цифровая карта высот для всех периодов съемки, на изображении ниже представлен результат за выбранный период',
+                    style : 'subheader',
+                    margin : [ 80, 40, 30, 5  ]
                 }];
                 pages.push(headTxt);
 
@@ -260,14 +261,15 @@ export default class PageGenerator {
                 // const perimetr = { text: ["Периметр: ", { text: info.perimetr + " m", color: "blue" }] };
                 // const area = { text: ["Площадь: ", { text: info.area + " m^2", color: "blue" }] };
 
-                const totalVolume = { text : [ 'Общий объем извлеченого грунта: ', { text : +totalValue.toFixed(2) + ' m^3', color : 'blue' }] };
-                const averageVolume = { text : [ 'Cреднее значение извлеченного грунта за заданные даты: ', { text : +middleValue.toFixed(2) + ' m^3', color : 'blue' }] };
+                const totalVolume = { text : [ 'Общий объем извлеченого грунта: ', { text : +totalValue.toFixed(2) + ' m^3', color : 'blue' }], style : 'subheader' };
+                const averageVolume = { text : [ 'Cреднее значение извлеченного грунта за заданные даты: ', { text : +middleValue.toFixed(2) + ' m^3', color : 'blue' }], style : 'subheader' };
                 const txt = [{
                         ul : [ '', '', totalVolume, averageVolume ],
                         margin : [ 0, 5 ]
                     },{
                         text : 'На графике представлены изменения по объему извлекаемого грунта относительно нулевой отметки, за весь период мониторинга',
-                        margin : [ 0, 5 ]
+                        //margin : [ 0, 5 ],
+                        style : 'section'
                     }
                 ];
 
@@ -280,8 +282,7 @@ export default class PageGenerator {
                         image : canvas.toDataURL( 'image/png' ),
                         width : 480,
                         height : 290,
-                        alignment : 'center',
-                        margin : [ 0, 10 ]
+                        style : 'positionChartSurface'
                     }];
                     pages.push(pageImg);
                 });
@@ -290,14 +291,14 @@ export default class PageGenerator {
                     [
                         { text : 'Дата', style : 'tableHeader' }, 
                         { text : 'Объем', style : 'tableHeader' }, 
-                        { text : 'Разница с последней съемкой', style : 'tableLastHeader' }
+                        { text : 'Разница с последней съемкой', style : 'tableHeader' }
                     ]
                 ];
                 const tblBody = upHeightsData.map( item=> {
                     return [
-                        { text : item.dataVolume, margin : [ 0, 10, 0, 0 ] },
-                        { text : item.volume, margin : [ 0, 10, 0, 0 ] },
-                        { text : item.diffVolume, margin : [ 0, 10, 0, 0 ] }
+                        { text : item.dataVolume, margin : [ 0, 10, 0, 0 ], style : 'blueText' },
+                        { text : item.volume, margin : [ 0, 10, 0, 0 ], style : 'blueText' },
+                        { text : item.diffVolume, margin : [ 0, 10, 0, 0 ], style : 'blueText' }
                     ]
                 });
                 const tblDataObj = [ ...tblHeader, ...tblBody ];
@@ -353,10 +354,10 @@ export default class PageGenerator {
             if ( heightsArrayFiltered.length > 1 ) {
                 const tblHeader = [
                     [
-                        { text : 'Дата съемки', style : 'tableLastHeader' }, 
-                        { text : 'Максимальная высота', style : 'tableLastHeader' }, 
-                        { text : 'Минимальная высота', style : 'tableLastHeader' }, 
-                        { text : 'Средняя высота', style : 'tableLastHeader' }
+                        { text : 'Дата', style : 'tableHeader' }, 
+                        { text : 'Максимальная высота', style : 'tableHeader' }, 
+                        { text : 'Минимальная высота', style : 'tableHeader' }, 
+                        { text : 'Средняя высота', style : 'tableHeader' }
                     ]
                 ];
 
@@ -377,16 +378,20 @@ export default class PageGenerator {
                     const finalRes = [
                         {
                             text : item.name,
-                            margin : [0, 10, 0, 0]
+                            margin : [0, 10, 0, 0],
+                            style : 'blueText'
                         },{
                             text : `${max} m`,
-                            margin : [0, 10, 0, 0]
+                            margin : [0, 10, 0, 0],
+                            style : 'blueText'
                         },{
                             text : `${min} m`,
-                            margin : [0, 10, 0, 0]
+                            margin : [0, 10, 0, 0],
+                            style : 'blueText'
                         },{
                             text : `${aver} m`,
-                            margin : [0, 10, 0, 0]
+                            margin : [0, 10, 0, 0],
+                            style : 'blueText'
                         }
                     ];
 
@@ -398,16 +403,24 @@ export default class PageGenerator {
                 pages.push( tblForReport );
             }
 
+            const obj1 = [{
+                pageBreak : 'before',
+                style : 'header',
+                text : 'График профиля поверхности',
+            }];
+            
+            pages.push(obj1);
+
             await html2canvas(
                 document.querySelector( '#graphPlotChart_' + lineItem.id ), { logging: false }
             ).then(canvas => {
                 const pageImg = [{
-                    image : canvas.toDataURL("image/png"),
+                    image : canvas.toDataURL('image/png'),
                     width : 450,
                     height : 300,
-                    alignment : 'center'
+                    style : 'positionChartSurface'
                 }];
-                pages.push(pageImg);
+                pages.push( pageImg );
             });
             return pages;
         }
