@@ -1,16 +1,20 @@
 <template>
-  <div id="buttonPdf">
-    <span class="headline">{{$lang.messages.reportName}}</span>
-    <div class="reportButton">
+  <div id='buttonPdf' >
+    <span class='headline' > 
+      {{$lang.messages.reportName}} 
+    </span>
+    <div class='reportButton' >
       <mButton v-if="!this.isProccessing" class='pdfButtonClass'
         @click='getReportWithLoader' >
-        <img align="right" :src="require('content/images/report.png')">
+        <img align='right' :src="require('content/images/report.png')">
       </mButton>
-      <p v-else style="color: red; font-weight: bold">{{this.completed}}%</p>
+      <p v-else class='percResult'>
+        {{this.completed}}%
+      </p>
     </div>
-    <div id="mapSnapshot"></div>
-    <div id="colorMapSnapshot"></div>
-    <div id="graphs">
+    <div id='mapSnapshot' ></div>
+    <div id='colorMapSnapshot' ></div>
+    <div id='graphs' >
       <div v-for="(item, index) in reportObjects" :key="index">
         <div :id="'graphPlotChart_' + item.id"></div>
       </div>
@@ -29,47 +33,53 @@ import mapboxDraw from '@mapbox/mapbox-gl-draw/js'
 import PageGenerator from 'services/PageGenerator'
 import { mapGetters, mapActions } from 'vuex'
 import mButton from 'components/Additional/MButton'
+import kpmgFont from '@kpmgFont'
 
 export default {
   components : { mButton },
-  data: () => ({
-    reportObjects: [],
-    mapName: "",
-    mapFullName: "",
-    controlObject: "",
-    surfaceProfile: "Профиль поверхности",
-    mapObjectEndTxt: "",
-    layerChanges: "",
-    threeDModel: "",
-    titlePageBackgroundUrl: "",
-    scaleLayerChanges: "",
-    mainLayer: "",
-    additionalLayer: "",
-    isProccessing: false,
-    completed: 0
+  data :()=> ({
+    surfaceProfile : 'Профиль поверхности',
+    reportObjects : [],
+    mapName : '',
+    mapFullName : '',
+    controlObject : '',
+    mapObjectEndTxt : '',
+    layerChanges : '',
+    threeDModel : '',
+    titlePageBackgroundUrl : '',
+    simplePageBackGroundUrl : '',
+    lastPageBackGroundUrl : '',
+    footPage : '',
+    headPage : '',
+    scaleLayerChanges : '',
+    mainLayer : '',
+    additionalLayer : '',
+    isProccessing : false,
+    completed : 0,
+    cntOfPages : 0,
   }),
-  computed: {
+  computed : {
     //Нам требуются данные по карте, обьекты, которые будут включены в отчет и обьект для построения графиков
     ...mapGetters([
-      "getMapObjList",
-      "getMathCalcHeight",
-      "getAllMapState",
-      "getInstrument"
+      'getMapObjList',
+      'getMathCalcHeight',
+      'getAllMapState',
+      'getInstrument'
     ]),
-
-    start: async function() {}
+    start : async function() {}
   },
 
   methods: {
     ...mapActions([
-      "setAdditionalPoints",
-      "setReportLayer",
-      "setAdditionalPoints",
-      "getActionReportWithLoader"
+      'setAdditionalPoints',
+      'setReportLayer',
+      'setAdditionalPoints',
+      'getActionReportWithLoader'
     ]),
 
     //собираем данные из бд для текущего отчета, плюс получаем пользовательские обьекты
-    _getInfoForReport: async function() {
+    _getInfoForReport : async function() {
+
       const reportParams = {
         mapId: this.getAllMapState.mapId,
         oldLayerId: this.getAllMapState.addLayerId,
@@ -77,47 +87,66 @@ export default {
       };
 
       //Подтягиваем данные из базы данных, которые нужны нам для отчета.
-      const reportInfo = await api.getReportObjects(reportParams);
+      const reportInfo = await api.getReportObjects( reportParams );
 
       this.controlObject = reportInfo.data.find(
-        item => item.type == "introduction"
+        item => item.type === 'introduction'
       ).text;
 
+      //Титульник, обычный и последний лист
       this.titlePageBackgroundUrl = reportInfo.data.find(
-        item => item.type == "titlePageBackground"
+        item => item.type === 'titlePageBackground'
       ).text;
 
-      this.mapName = reportInfo.data.find(item => item.type == "mapName").text;
+      this.simplePageBackGroundUrl = reportInfo.data.find(
+        item => item.type === 'simplePageBackGround'
+      ).text;
+
+      this.lastPageBackGroundUrl = reportInfo.data.find(
+        item => item.type === 'lastPageBackGround'
+      ).text;
+
+       this.footPage = reportInfo.data.find(
+        item => item.type === 'foot'
+      ).text;
+
+       this.headPage = reportInfo.data.find(
+        item => item.type === 'head'
+      ).text;
+
+      this.mapName = reportInfo.data.find(
+        item => item.type === 'mapName' 
+      ).text;
 
       this.mapFullName = reportInfo.data.find(
-        item => item.type == "mapFullName"
+        item => item.type === 'mapFullName'
       ).text;
 
       this.mapObjectEndTxt = reportInfo.data.find(
-        item => item.type == "mapObject"
+        item => item.type === 'mapObject'
       ).text;
 
       this.layerChanges = reportInfo.data.find(
-        item => item.type == "layerChanges"
+        item => item.type === 'layerChanges'
       )
-        ? reportInfo.data.find(item => item.type == "layerChanges").text
-        : "";
+        ? reportInfo.data.find( item => item.type === 'layerChanges' ).text
+        : '';
 
-      this.threeDModel = reportInfo.data.find(item => item.type == "3dModel")
-        ? reportInfo.data.find(item => item.type == "3dModel").text
-        : "";
+      this.threeDModel = reportInfo.data.find(item => item.type === '3dModel' )
+        ? reportInfo.data.find( item => item.type === '3dModel' ).text
+        : '';
 
       this.scaleLayerChanges = reportInfo.data.find(
-        item => item.type == "scaleForLayerChanges"
+        item => item.type === 'scaleForLayerChanges'
       ).text;
 
       //Получаем информацию о слоях
       this.mainLayer = this.getAllMapState.mapModel.layers.find(
-        item => item.id == this.getAllMapState.mainLayerId
+        item => item.id === this.getAllMapState.mainLayerId
       );
 
       this.additionalLayer = this.getAllMapState.mapModel.layers.find(
-        item => item.id == this.getAllMapState.addLayerId
+        item => item.id === this.getAllMapState.addLayerId
       );
 
       //Информаиця об обьектах, которые будут включены в отчет
@@ -126,92 +155,82 @@ export default {
 
     //Обертка над осн функцией по форм отчета
     async getReportWithLoader() {
-      let currContext = this;
       this.getActionReportWithLoader(
         new Promise( resolve => {
-          resolve( currContext.getReport() );
+          resolve( this.getReport() );
         })
       );
     },
 
     //Осн функция для формирования отчета
-    getReport: async function() {
-      const pdfMake = require("pdfmake/build/pdfmake.js");
+    getReport : async function() {
+
+      let pdfMake = require( 'pdfmake/build/pdfmake.js' );
 
       if ( pdfMake.vfs === undefined ) {
-        const pdfFonts = require("pdfmake/build/vfs_fonts.js");
-        pdfMake.vfs = pdfFonts.pdfMake.vfs;
+        pdfMake.vfs = kpmgFont.data;
       }
 
       try {
 
         await this._getInfoForReport();
 
+        const pages = new Array();
+
         this.completed = 3;
-        let pages = new Array();
         this.isProccessing = true;
-
-        const mainPage = [
-          {
-            text: this.mapFullName,
-            margin: [30, 160, 20, 20],
-            fontSize: 40,
-            color: "#00338d"
-          },
-          {
-            text:
-              'Отчет по осуществлению контроля производства строительный работ на объекте "' +
-              this.mapName +
-              '" за период ' +
-              this.additionalLayer.createDtStr +
-              " - " +
-              this.mainLayer.createDtStr,
-            pageBreak: "after",
-            margin: [30, 240, 0, 50],
-            bold: true,
-            color: "#00338d"
-          }
-        ];
-        pages.push(mainPage);
-
+        
+        const mainPage = [{
+          text : this.mapFullName,
+          style : 'mainTitle'
+        }, {
+          text : 'Отчет по осуществлению контроля производства строительный работ на объекте "' + this.mapName + '" за период ' + this.additionalLayer.createDtStr + " - " + this.mainLayer.createDtStr,
+          pageBreak : 'after',
+          style : 'mainDescr'
+        }];
+        
+        pages.push( mainPage );
+        
         const firstPage = PageGenerator.firstPage(
           this.mapName,
           this.controlObject
         );
-        pages.push(firstPage);
-
+        pages.push( firstPage );
+        
         this.completed = 17;
-
+        
         // создаем карту, для получения страниц осн обьекта и карт для графиков.
         let snapshotMap = await this._generateMap({
-          objectType: "polygon",
-          isColor: false
+          objectType : 'polygon',
+          isColor : false
         });
 
-        let mainMap = await PageGenerator.getMainMapPage(
-          snapshotMap,
-          this.mapObjectEndTxt
-        );
+        let mainMap = await PageGenerator.getMainMapPage( snapshotMap, this.mapObjectEndTxt );
         pages.push(mainMap);
 
-        document.querySelector("#mapSnapshot").innerHTML = "";
+        document.querySelector('#mapSnapshot').innerHTML = '';
 
         // const geoPlan = await this._getGeoPlan(snapshotMap);
-        // pages.push(geoPlan);
-
+        // pages.(geoPlan);
+        
         this.completed = 25;
         
+        const dateBetweenObj =  {
+          mainDate: this.mainLayer.createDtStr,
+          additionalDate: this.additionalLayer.createDtStr
+        }
+
         const math = this.getMathCalcHeight;
         const polygons = this.reportObjects.filter( item=> item.properties.type === 'polygon' );
-        const volumePage = await PageGenerator.volumePage( math, polygons );
+        const volumePage = await PageGenerator.volumePage( math, polygons, dateBetweenObj );
 
-        pages.push(volumePage);
+        pages.push( volumePage );
 
         this.completed = 45;
 
         snapshotMap = await this._generateMap({
-          objectType: "line",
-          isColor: false
+          objectType : 'line',
+          isColor : false
         });
 
         const linesOfReport = this.reportObjects.filter( item => 
@@ -229,17 +248,18 @@ export default {
             const surfaceResult = await PageGenerator.surfacePage({
               snapshotMap : snapshotMap,
               instrument : this.getInstrument,
-              lineItem : item
+              lineItem : item,
+              dateObj : dateBetweenObj
             });
-            pages.push(surfaceResult)
+            pages.push( surfaceResult )
           }
         }
 
-        document.querySelector("#mapSnapshot").innerHTML = "";
+        document.querySelector('#mapSnapshot').innerHTML = '';
         snapshotMap = null;
         this.reportObjects = [];
 
-        this.completed = 73;
+        this.completed = 75;
 
         if (this.getAllMapState.isExistColorCurrentLayer) {
           let snapshotColorMap = await this._generateMap({ isColor: true });
@@ -248,100 +268,189 @@ export default {
           );
           pages.push(colorMap);
 
-          document.querySelector("#colorMapSnapshot").innerHTML = "";
+          document.querySelector('#colorMapSnapshot').innerHTML = '';
           snapshotColorMap = null;
         }
 
         this.completed = 85;
 
-        if (this.layerChanges != "") {
+        if ( this.layerChanges !== '' ) {
           // const changesPage = await PageGenerator.getChangesPage(
           //   this.layerChanges,
           //   this.scaleLayerChanges
           // );
-          // pages.push(changesPage);
+          // pages.(changesPage);
         }
 
-        if (this.threeDModel != "") {
+        if ( this.threeDModel !== '' ) {
           // const threeDModelPage = await PageGenerator.get3DPage(
           //   this.threeDModel
           // );
-          // pages.push(threeDModelPage);
+          // pages.(threeDModelPage);
         }
         this.completed = 90;
+        /**/
+        
+        const titlePageBackground = await this._getMainImg( this.titlePageBackgroundUrl );
+        const lastPageBackGroundUrl = await this._getMainImg( this.lastPageBackGroundUrl );
+        const footImg = await this._getMainImg( this.footPage, { width : 90, height : 50 } );
+        const headImg = await this._getMainImg( this.headPage, { width : 150, height : 90 } );
 
-        const titlePageBackground = await this._getMainImg();
+        const imgLastBack = [{
+          pageBreak : 'before',
+          image : lastPageBackGroundUrl,
+          absolutePosition : { x : 0, y : 0 }
+        }];
+        pages.push(imgLastBack);
+
         const docDefinition = {
-          background : function( currentPage, pageSize ) {
-            if ( currentPage === 1 ) return [ { image : titlePageBackground } ];
-            return '';
+          header : ( currentPage, pageCount )=> {
+            const isSimplePage = ( currentPage !== 1 && currentPage !== pageCount );
+            const finalObj = isSimplePage ? [{ image : headImg, margin : [ 590, 0 ] }] : '';
+            return finalObj;
           },
-          content: [pages],
-          styles: {
-            header: {
-              fontSize: 26,
-              margin: [0, 0, 0, 10],
-              color: "#00338d"
+          footer : ( currentPage, pageCount )=> {
+
+            let finalObj = '';
+            let footerPageArr = [];
+            const isSimplePage = ( currentPage !== 1 && currentPage !== pageCount );
+
+            if ( isSimplePage ) {
+              
+              const footerImg = [{ 
+                image : footImg, 
+                style : 'footerImg'
+              }];
+              footerPageArr.push(footerImg);
+              
+              const textUp = `© 2020 АО "КПМГ", компания, зарегистрированная в соответствии с законодательством Российской Федерации, член совета сети независимых фирм КПМГ, входящих в ассоциации KPMG International Cooperative ("KPMG International"), зарегистрированную по законодательству Швейцарии. Все права защищены. `;
+              const textDown = ' Статус документа : Конфендициально.';
+              const footerUp = [{
+                text : [ textUp, { text : textDown, color : '#000' } ],
+                style : 'footerUp'
+              }];
+              footerPageArr.push(footerUp);
+
+              const numberOfPages = [{
+                text : currentPage,
+                style : 'numberOfPage'
+              }];
+              footerPageArr.push(numberOfPages);
+
+              finalObj = footerPageArr;
+            }
+            return finalObj;
+          },
+          background : currentPage=> {
+            const finalObj = currentPage === 1 ? [{ image : titlePageBackground }] : '';
+            return finalObj;
+          },
+
+          pageSize : {
+            width : 720,
+            height : 1040
+          },
+
+          content : [ pages ],
+
+          styles : {
+            mainTitle : {
+              margin : [ 105, 200, 30, 10 ],
+              fontSize : 50,
+              bold : true,
+              color : '#fff'
             },
-            subheader: {
-              fontSize: 11,
-              bold: true,
-              margin: [0, 10, 0, 5],
-              color: "#00338d"
+            mainDescr : {
+              margin : [ 105, 50, 30, 10 ],
+              fontSize : 35,
+              color : '#fff'
             },
-            defaultStye: {
-              fontSize: 11,
-              fontfamily: "Arial",
-              margin: [0, 5, 0, 5]
+            header : {
+              fontSize : 30,
+              margin : [ 70, 5, 30, 10 ],
+              color : '#00338d'
             },
-            section: {
-              fontSize: 11,
-              margin: [0, 5, 0, 5]
+            subheader : {
+              fontSize : 20,
+              bold : true,
+              margin : [ 80, 20, 30, 5 ],
+              color : '#00338d'
             },
-            tableExample: {
-              fontSize: 12,
-              fillColor: "#e7eef8",
-              alignment: "center",
-              margin: [0, 20, 0, 0]
+            section : {
+              fontSize : 15,
+              margin : [ 90, 15, 30, 5 ]
             },
-            tableHeader: {
-              bold: true,
-              color: "white",
-              fillColor: "#0091da",
-              margin: [0, 20, 0, 0]
+            defaultStye : {
+              fontSize : 11,
+              fontfamily : 'Arial',
+              margin : [ 0, 5, 0, 5 ]
             },
-            tableLastHeader: {
-              bold: true,
-              color: "white",
-              fillColor: "#0091da",
-              margin: [5, 13, 5, 5]
+            tableExample : {
+              fontSize : 15,
+              fillColor : '#fff',
+              alignment : 'center',
+              margin : [ 85, -20, 85, 15 ]
+            },
+            tableHeader : {
+              bold : true,
+              color : 'white',
+              fillColor : '#00338d',
+              margin : [ 5, 10, 5, 5 ]
+            },
+            tableLastHeader : {
+              bold : true,
+              color : 'white',
+              fillColor : '#0091da',
+              margin : [ 5, 10, 5, 5 ]
+            },
+            blueText : {
+              color : '#00338d'
+            },
+            positionChartSurface : {
+              margin : [ 90, 30, 30, 0 ],
+            },
+            footerImg : {
+              margin : [ 7, -10 ] 
+            },
+            footerUp : {
+              fontSize : 14,
+              margin : [ 135, -35, 50, 0 ],
+              color : '#888'
+            },
+            numberOfPage : {
+              fontSize : 15,
+              color : '#00338d',
+              bold : true,
+              margin : [ 680, -22, 0, 0 ],
             }
           }
         };
-
-        pdfMake.createPdf(docDefinition).download("report.pdf");
-
+        pdfMake.createPdf( docDefinition ).download('report.pdf');
       } catch (e) {
         console.log(e);
       } finally {
         this.isProccessing = false;
+        pdfMake = null;
+        pages = null;
       }
     },
 
-    _getMainImg() {
-      const current = this;
-      return new Promise(async function(resolve) {
-        var image = new Image(595, 842);
+    _getMainImg( inSrc, inSizeObj ) {
+      if( !inSrc ) return;
+      return new Promise( async (resolve)=> {
+        const image = new Image();
         image.onload = function() {
-          var canvas = document.createElement("canvas");
-          canvas.width = 595;
-          canvas.height = 842;
-
-          canvas.getContext("2d").drawImage(this, 0, 0);
-          resolve(canvas.toDataURL("image/png"));
+          const canvas = document.createElement('canvas');          
+          
+          const { width, height } = inSizeObj || { width : 720, height : 1040 };
+          
+          canvas.width = width;
+          canvas.height = height;
+          
+          canvas.getContext('2d').drawImage( this, 0, 0 );
+          resolve( canvas.toDataURL('image/png') );
         };
-
-        image.src = current.titlePageBackgroundUrl;
+        image.src = inSrc;
       });
     },
 
@@ -351,9 +460,9 @@ export default {
 
       const header = [
         {
-          pageBreak: "before",
-          text: this.surfaceProfile,
-          style: "header"
+          pageBreak : 'before',
+          text : this.surfaceProfile,
+          style : 'header'
         }
       ];
       pagesGraph.push(header);
@@ -366,33 +475,33 @@ export default {
         let coords = "";
         let heights = "";
 
-        if (item.properties.type == "line") {
-          coords = { type: "line", array: item.geometry.coordinates };
+        if (item.properties.type === 'line' ) {
+          coords = { type: 'line', array: item.geometry.coordinates };
           heights = await math.getHeightsLine(item, true);
         }
 
-        if (item.properties.type == "polygon") {
-          coords = { type: "polygon", array: item.geometry.coordinates };
+        if (item.properties.type === 'polygon' ) {
+          coords = { type : 'polygon', array: item.geometry.coordinates };
           await math.getVolume( item, true, true, true );
         }
 
-        const obj = { map: snapshotMap, coords };
+        const obj = { map : snapshotMap, coords };
         const img = await this._graphPageFlyToPromise(obj);
-        pagesGraph.push(img);
+        pagesGraph.push( img );
 
         await html2canvas(
-          document.querySelector("#graphPlotChart_" + item.id),
+          document.querySelector( '#graphPlotChart_' + item.id ),
           { logging: false }
         ).then(canvas => {
           const pageHeader = [
             {
-              text: item.properties.name + ": " + item.properties.data,
-              style: "subheader"
+              text : item.properties.name + ': ' + item.properties.data,
+              style : 'subheader'
             }
           ];
           pagesGraph.push(pageHeader);
 
-          if (heights != "") {
+          if ( heights !== '' ) {
             const pageValues = [
               {
                 text:
@@ -426,42 +535,36 @@ export default {
     //создаем элемент карты с слоями: стандартный и обьекты на нем
     //выбранные пользователем (isColor = false)
     //либо спектральный слой высот (isColor = true)
-    _generateMap: async function(properties) {
-      const currVuex = this;
+    _generateMap : async function(properties) {
 
-      return new Promise(function(resolve, reject) {
-        mapboxgl.accessToken = currVuex.getAllMapState.mapModel.accessToken;
-        let container = "mapSnapshot";
-        if (properties.isColor) container = "colorMapSnapshot";
+      return new Promise( (resolve, reject)=> {
 
-        let snapshotMap = new mapboxgl.Map({
-          container: container,
-          zoom: 14.1,
-          style: {
-            version: 8,
-            sources: {},
-            layers: [
-              {
-                id    : "background",
-                type  : "background",
-                paint : {
-                  "background-color" : "white"
-                }
+        mapboxgl.accessToken = this.getAllMapState.mapModel.accessToken;
+
+        const container = properties.isColor ? 'colorMapSnapshot' : 'mapSnapshot';
+        const snapshotMap = new mapboxgl.Map({
+          zoom : 14.1,
+          container : container,
+          style : {
+            version : 8,
+            sources : {},
+            layers : [{
+              id : 'background',
+              type : 'background',
+              paint : {
+                'background-color' : 'white'
               }
-            ]
+            }]
           },
-          center: currVuex.getAllMapState.mapModel.center
+          center : this.getAllMapState.mapModel.center
         });
 
-        snapshotMap.on("load", function() {
-          const obj = { snapshotMap, isColor: properties.isColor };
-          
-          currVuex.setReportLayer(obj);
-
-          if (!properties.isColor) {
-            currVuex.getInstrument.setImagesForDrawObjects(
-              currVuex.getMapObjList.mapObjListDraw,
-              currVuex.getMapObjList.mapObjListTable,
+        snapshotMap.on( 'load', ()=> {
+          const obj = { snapshotMap, isColor : properties.isColor };
+          this.setReportLayer( obj );
+          if ( !properties.isColor ) {
+            this.getInstrument.setImagesForDrawObjects(
+              this.getMapObjList.mapObjListTable,
               snapshotMap
             );
           }
@@ -481,8 +584,14 @@ export default {
   cursor : auto;
   margin : 0 0 0 3px;
 }
+.percResult {
+  color : #00338d; 
+  font-weight : bold;
+  margin: 0;
+  padding: 0;
+}
 .pdfButtonClass {
-  margin: 0 2px 0 0px;
+  margin: 0 4px 0 0px;
 }
 .headline {
   display: flex;
