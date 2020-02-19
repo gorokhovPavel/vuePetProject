@@ -83,7 +83,7 @@ export default class Instrument {
 
         if( !inSelObjDraw ) return;
 
-        if( inSelObjDraw.geometry.type === 'LineString' || inSelObjDraw.geometry.type === 'Polygon' ) {
+        if( ( inSelObjDraw.geometry.type === 'LineString' || inSelObjDraw.geometry.type === 'Polygon' ) && !inSelObjDraw.properties.id ) {
             this.commitData( 'setCurrentMapValue', { field : 'activeModal', value : true });
             this.commitData( 'setCurrentMapValue', { field : 'activeModalTitle', value : sureMathCalcTitle });
             this.commitData( 'setCurrentMapValue', { 
@@ -146,9 +146,8 @@ export default class Instrument {
         //Если было произведено "отпускание" мыши - просто перерисывываем форму
         if( inEvent.type === 'mouseup' ) {
             if(selectDrawItem) this.setImagesForDrawObjects( selectDrawItem.id );
-        } 
-        //Ну а если был произведен клик - делаем расчеты или открываем всплывающее окно 
-        //else if( inInst ){
+        } else {
+            //Ну а если был произведен клик - делаем расчеты или открываем всплывающее окно 
             //Высотная метка
             if ( inInst === 1 ) {
 
@@ -157,7 +156,8 @@ export default class Instrument {
                 const mathData = await mathCalcHeightWithModel.getHeightsLine( curDrawItem, false, this.stateData.isActiveAddLayer );
 
                 try {
-                    heightsData = mathData.heightsData.inArr[0].toFixed(2);
+                    heightsData = +mathData.heightsData.inArr[0];
+                    heightsData  = heightsData.toFixed(2);
                     heightsDataText =  `${lang.getMessages('heightOnPoint')} : ${heightsData}${lang.getMessages('meter')}`
                 } catch(error) {
                     heightsData = -1;
@@ -193,8 +193,8 @@ export default class Instrument {
                 const curDrawList = this.getFetureList( selectDrawItem.id );
                 curDrawItem = curDrawList.length>0 ? this.getFetureList( selectDrawItem.id )[0] : selectDrawItem;
                 this.setAddPopUp( curDrawItem, [ inEvent.lngLat.lng, inEvent.lngLat.lat ] );  
-            }
-        //}        
+            }     
+        }
     }
     
     //Двойной клик на карту - смотрим, попали ли на какой-нибудь объект 
@@ -237,9 +237,7 @@ export default class Instrument {
         }
         //Полигон
         else if ( measurItem === 3 || inSelDraw.geometry.type === 'Polygon' ) {
-            if( this.stateData.is3dVolume && inSelDraw.chartData.useThreeDCheck ) {
-                this.commitData( 'setCurrentMapValue', { field : 'show3DPanel', value : true });  
-            }
+            //Сперва смотрим, есть ли уже в объекте загруженные данные
             if( inSelDraw.chartData && !isRecount ) {
                 if( inSelDraw.chartData.useThreeDCheck ) {
                     this.commitData( 'setCurrentMapValue', { field : 'show3DPanel', value : true });  
@@ -248,6 +246,9 @@ export default class Instrument {
                     buildChart.addTwoDimVoluemGraph( inSelDraw.chartData.heightsData, null );
                 }
             } else {
+                if( this.stateData.is3dVolume ) {
+                    this.commitData( 'setCurrentMapValue', { field : 'show3DPanel', value : true }); 
+                }
                 resMathData = await mathCalcHeightWithModel.getVolume( inSelDraw, false, this.stateData.isActiveAddLayer, this.stateData.is3dVolume );
             }
         }     
@@ -353,16 +354,16 @@ export default class Instrument {
                             });
                         } else {
                             inMapObj.addLayer({
-                                "id" :  `polygonObj${item.id}`,
-                                "type" : "fill",
-                                "source" : {
-                                    "type" : "geojson",
-                                    "data" : {
-                                        "type" : "Feature",
-                                        "properties" : {},
-                                        "geometry" : {
-                                            "type" : "Polygon",
-                                            "coordinates" : item.geometry.coordinates
+                                'id' :  `polygonObj${item.id}`,
+                                'type' : 'fill',
+                                'source' : {
+                                    'type' : 'geojson',
+                                    'data' : {
+                                        'type' : 'Feature',
+                                        'properties' : {},
+                                        'geometry' : {
+                                            'type' : 'Polygon',
+                                            'coordinates' : item.geometry.coordinates
                                         }
                                     }
                                 },
@@ -454,8 +455,6 @@ export default class Instrument {
             const type = featureDrawItem.geometry.type;
             const objLayerName = `lineObj${featureDrawItem.id}`;
 
-            //this._deleteSorceAndLayersFromMap( null, inMapObj );
-
             //Находим все слои, что означают текущий нарисованный объект
             const finderObj = inMapObj.getStyle().layers.filter( x => x.id.match(objLayerName) );
             
@@ -485,7 +484,7 @@ export default class Instrument {
                     },
                     'paint' : {
                         'line-color' : color,
-                        'line-width' : 7
+                        'line-width' : 10
                     }
                 });
             }
