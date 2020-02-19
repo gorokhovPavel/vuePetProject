@@ -145,13 +145,16 @@ export default class MathCalcHeight {
 
     getTotalDistanceStr( objDraw, isTypeStr ) {
         
+        if( !objDraw.geometry ) return;
+
         let outStr = null;
         if ( objDraw.geometry.type === 'LineString' ) {
-            let lineDistance = turf.lineDistance(objDraw);
-            if (isTypeStr)
+            const lineDistance = turf.lineDistance(objDraw);
+            if (isTypeStr){
                 outStr = `${lang.getMessages('width')} : ${ this._setLineToStr(lineDistance, 2)}`;
-            else
+            } else {
                 outStr = lineDistance;
+            }
         } else if ( objDraw.geometry.type === 'Polygon' ) {
 
             let perimetr = turf.lineDistance(turf.lineString(objDraw.geometry.coordinates[0]));
@@ -330,6 +333,8 @@ export default class MathCalcHeight {
 
     //Здесь делаем разрез высот
     async _lineHeights( objPoints, widthLine, strLineWidth, isReport, isMoreOneLayer ) {
+
+        if( !objPoints.geometry ) return;
 
         const finalRes = {};
         const arrCoordPoint = objPoints.geometry.coordinates;
@@ -548,17 +553,21 @@ export default class MathCalcHeight {
         for ( let k = 0; k < data2.length; k++ ) {
 
             //если в пределах строки объемного полигона точек более чем 1000, то они также разбиваются на части
-            let subDataArr;
-            if (data2[k].length > 1000) 
+            let subDataArr = [];
+            if (data2[k].length > 1000) {
                 subDataArr = ext.getChunksArray(data2[k].slice(0), 1000);
-            else 
+            } else {
                 subDataArr = [data2[k]];
+            }
+
+            const getZeroIfUn = item=> item || 0;
 
             for ( let s = 0; s < subDataArr.length; s++ ) {
-                let latMax = subDataArr[s][0][1];
-                let latMin = subDataArr[s][0][1];
-                let longMax = subDataArr[s][0][0];
-                let longMin = subDataArr[s][0][0];
+
+                let latMax =  getZeroIfUn(subDataArr[s][0][1]);
+                let latMin =  getZeroIfUn(subDataArr[s][0][1]);
+                let longMax = getZeroIfUn(subDataArr[s][0][0]);
+                let longMin = getZeroIfUn(subDataArr[s][0][0]);
 
                 for (let ii = 0; ii < subDataArr[s].length; ii++) {
                     if (subDataArr[s][ii][1] > latMax) {
@@ -642,7 +651,8 @@ export default class MathCalcHeight {
             await api.postLayerPoints({ 
                 Arr : dataPerRequest[m] 
             }).then(response=>{
-                const localRes = ext.setParseJsonToData(response.data, zeroMark);
+                let localRes = ext.setParseJsonToData(response.data, zeroMark);
+                localRes = localRes.map( item=> item.toFixed(2) );
                 outHeightsArr2 = outHeightsArr2.concat(localRes);
             }).catch(err=>{
                 console.log(err);
