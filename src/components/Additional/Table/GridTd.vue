@@ -2,14 +2,14 @@
     <!-- typeTd - свойство, в зависимости от него будет отрисована определенная форма, подробности в computed -->
     <td v-if='( typeTd !== 0 )' :style='{ "text-align" : styleAlignTd }' @click='setSelectTr' >
         <mButton v-if='( typeTd === 1 )' @click='setActionMapObj' >
-            <img class='imgInButton' v-if='( typeTd === 1 )' :src="require(`content/images/${row}.png`)" >
+            <img v-if='( typeTd === 1 )' :src="require(`content/images/${row}.png`)" >
         </mButton>  
         <mButton v-if='( typeTd === 5 )' @click='setDeleteMapObj' >
-            <img v-if='( typeTd === 5 )' class='imgInButton' :src="require(`content/images/delete.png`)" >
+            <img v-if='( typeTd === 5 )' :src="require(`content/images/delete.png`)" >
         </mButton> 
         <md-checkbox
             v-if='( typeTd === 3 )' v-show='isLineOrPolygon' 
-            class='md-primary mapObjIncludeReport' 
+            class='md-primary mapObjIncludeReport'
             v-model='selectedItem' @change='setChangeTdOfMapObj(typeTd)' 
         />
         <div v-if='( typeTd === 4 )' v-show='isLineOrPolygon' >
@@ -48,7 +48,7 @@
             //Проставляем отпределенный коэффициент типу столбца
             typeTd() {
                 let tdTypeInt = 0;
-                switch( this.column ){
+                switch( this.column ) {
                     case 'id' : tdTypeInt = 0; break;
                     case 'type' : tdTypeInt = 1; break;
                     case 'isReport' : tdTypeInt = 3; break;
@@ -79,21 +79,21 @@
             }
         },
         methods : {
-            ...mapMutations(['setCurrentMapValue']),
+            ...mapMutations( ['setCurrentMapValue'] ),
             setSelectTr() {
                 this.mapObjElem = this.getInstrument.getFetureList( this.mapObjId );
                 if( !this.mapObjElem ) return;
                 this.getInstrument.setImagesForDrawObjects( this.mapObjId );
+                // //Проверяем на тип элемента
+                // if ( this.mapObjElem[0].geometry.type !== 'Point' ) {
+                //     this.getInstrument.setToggleDrawObjFromMap(true);
+                //     this.getAllMapState.mapObjListDraw.changeMode( 'direct_select', { featureId : this.mapObjId } );
+                // }
                 this.getInstrument.setAddPopUp( this.mapObjElem );
-                //Проверяем на тип элемента
-                if ( this.mapObjElem[0].geometry.type !== 'Point' ) {
-                    this.getInstrument.setToggleDrawObjFromMap(true);
-                    this.getAllMapState.mapObjListDraw.changeMode( 'direct_select', { featureId : this.mapObjId } );
-                }
             },
             setChangeTdOfMapObj( inTypeTd ) {
                 
-                let arrObj = this.getAllMapState[this.tableNameState];
+                let arrObj = this.getAllMapState[ this.tableNameState ];
                 let elemOfChangeArr = arrObj.find( x => x.id === this.mapObjId );
                 let indexOfchangeArr = arrObj.indexOf( elemOfChangeArr );
                 let colorNumber = elemOfChangeArr.numColor;
@@ -119,6 +119,7 @@
                     isReport : reportValue,
                     type : elemOfChangeArr.type
                 }
+
                 //Меняем этот элемент 
                 arrObj.splice( indexOfchangeArr, 1, elemOfChangeArr );
                 //Записываем текущее состояние таблицы объектов в стейт
