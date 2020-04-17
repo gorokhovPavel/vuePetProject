@@ -311,6 +311,7 @@ export default class MathCalcHeight {
         let maxDist = onseSideDistanse;
         if (onseSideDistanse2 > maxDist) {
             maxDist = onseSideDistanse2;
+            
         }
 
         let point1 = { latitude: arrY[0], longitude: arrX[0] };
