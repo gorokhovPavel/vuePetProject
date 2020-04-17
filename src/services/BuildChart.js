@@ -98,8 +98,8 @@ export default class BuildChart {
                 }
             },
             legend : {
-                x : 0,
-                y : 1.17,
+                x : 0.1,
+                y : 1.12,
                 orientation : 'h',
                 traceorder : 'normal',
                 font : this._getFontChartStyle( reportObject, false ),
