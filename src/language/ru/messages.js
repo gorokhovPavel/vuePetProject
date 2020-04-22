@@ -108,8 +108,9 @@ module.exports = {
 
   volumeHistory : 'Изменение объемов извлечения грунта по датам',
   volumeDim : 'Объем, кубометры',
+  heightsMeter : 'Высота, метры',
   relToZero : 'Относительно нулевой отметки',
-  relToStartWork : 'Относительно начала работ',
+  relToStartWork : 'От предыдущей даты',
 
   recognitionName : 'Показать распознанные объекты',
   bulldozer : 'Бульдозер',
