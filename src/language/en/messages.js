@@ -108,8 +108,9 @@ module.exports = {
 
   volumeHistory : 'Сhange in soil recovery volumes by dates',
   volumeDim : 'Volume, cubic meters',
+  heightsMeter : 'Heights, meters',
   relToZero : 'Relatively zero',
-  relToStartWork : 'Regarding the start of work',
+  relToStartWork : 'Regarding the previous date',
 
   recognitionName : 'Show recognized objects',
   bulldozer : 'Bulldozer',
