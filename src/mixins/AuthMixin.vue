@@ -1,22 +1,18 @@
 <template>
-    <baseAuth :modelAuth='modelObj' />
+  <BaseAuth :modelAuth="modelObj" />
 </template>
 
 <script>
-    import { mapGetters } from 'vuex'
-    import baseAuth       from 'components/Auth/ExctAuth/BaseAuth'
+import { mapGetters } from "vuex";
+import BaseAuth from "../components/Auth/ExctAuth/BaseAuth.vue";
 
-    export default {
-
-        components : { baseAuth },
-        computed   : {
-
-            ...mapGetters(['getAllAuthState', 'getAuthHeadLogoInSuccessAuth'])
-        },
-
-        data :()=>({
-
-           modelObj : null,
-        })
-    }
+export default {
+  components: { BaseAuth },
+  computed: {
+    ...mapGetters(["getAllAuthState", "getAuthHeadLogoInSuccessAuth"])
+  },
+  data: () => ({
+    modelObj: null
+  })
+};
 </script>
