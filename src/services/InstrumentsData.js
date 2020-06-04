@@ -161,6 +161,41 @@ export default class Instrument {
     });
   }
 
+  //Выделяем объекты, на которые был наведен курсор
+  setMouseMoveActivateOverObj(inEvent) {
+    //Ищем все объекты на карте с префиксом polygonObj
+    const styleLayerArr = this.stateData.curMap
+      .getStyle()
+      .layers.filter(item => (item.source || []).indexOf("polygonObj") !== -1);
+
+    //Собираем айдишники слоев
+    let features = [];
+    styleLayerArr.forEach(item => {
+      const localFeatures = this.stateData.curMap.queryRenderedFeatures(
+        inEvent.point,
+        {
+          layers: [item.id]
+        }
+      );
+      if (localFeatures.length) {
+        features = [...features, localFeatures];
+      }
+    });
+
+    if (features.length !== 0) {
+      this._deleteAllPopup();
+      let featureId = features[0][0]?.layer?.id;
+      featureId = featureId.replace("polygonObj", "");
+
+      const mapObjElem = this.getFetureList(featureId);
+      this.stateData.mapObjListDraw.changeMode("direct_select", {
+        featureId: featureId
+      });
+
+      this.setAddPopUp(mapObjElem);
+    }
+  }
+
   //Клик на карту - проходим по инструментам, смотрим, на какой нажали
   async setPreparePopupProp(inEvent) {
     let curDrawItem = null;
@@ -249,6 +284,7 @@ export default class Instrument {
           (inInst === 3 || inInst === 7) &&
           curDrawItem.geometry.coordinates[0].length > 3
         ) {
+          curDrawItem.properties.isMenuInfoStartPopup = inInst === 7;
           let coord = this.mathCalcHeight.getStartCoord(curDrawItem);
           this.setAddPopUp(curDrawItem, [coord[0], coord[1]]);
         }
@@ -706,8 +742,11 @@ export default class Instrument {
 
     //Если карточка меню
     const menuInfoData = drawElem?.chartData?.isMenuInfo
-      ? drawElem.chartData
+      ? { ...drawElem.chartData, date: drawElem?.properties?.date }
       : null;
+
+    //Если карточка меню при первом появлении
+    const isMenuInfoStartPopup = drawElem?.properties?.isMenuInfoStartPopup;
 
     this._deleteAllPopup();
 
@@ -718,6 +757,7 @@ export default class Instrument {
 
     new this.popupContent({
       propsData: {
+        isMenuStartPopup: isMenuInfoStartPopup,
         mainInfo: mapPartInfo,
         menuInfo: menuInfoData,
         drawData: drawElem,
