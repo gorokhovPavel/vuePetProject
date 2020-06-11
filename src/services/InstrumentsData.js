@@ -184,6 +184,7 @@ export default class Instrument {
 
     if (features.length !== 0) {
       this._deleteAllPopup();
+
       let featureId = features[0][0]?.layer?.id;
       featureId = featureId.replace("polygonObj", "");
 
