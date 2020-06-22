@@ -1,6 +1,12 @@
 import Vue from "vue";
 import "@mapbox/mapbox-gl-draw/css";
 import mapboxDraw from "@mapbox/mapbox-gl-draw/js";
+import {
+  CircleMode,
+  DragCircleMode,
+  DirectMode,
+  SimpleSelectMode
+} from "mapbox-gl-draw-circle";
 import PopupContent from "../components/Map/Instruments/PopupContent";
 import { lang } from "../language";
 
@@ -51,14 +57,32 @@ export default class Instrument {
   //Объявление нового объекта с измерялками
   getMapBoxDraw() {
     return new mapboxDraw({
-      displayControlsDefault: true,
+      defaultMode: "draw_circle",
+      userProperties: true,
       styles: drawStyles.styleMapBoxDrawList(),
-      controls: {
-        polygon: true,
-        line_string: true,
-        point: true,
-        trash: true
+      modes: {
+        ...mapboxDraw.modes,
+        draw_circle: CircleMode,
+        drag_circle: DragCircleMode,
+        direct_select: DirectMode,
+        simple_select: SimpleSelectMode
       }
+      // defaultMode: "draw_circle",
+      // userProperties: true,
+      // styles: drawStyles.styleMapBoxDrawList(),
+      // controls: {
+      //   polygon: true,
+      //   line_string: true,
+      //   point: true,
+      //   trash: true
+      // },
+      // modes: {
+      //   ...mapboxDraw.modes,
+      //   draw_circle: CircleMode,
+      //   drag_circle: DragCircleMode,
+      //   direct_select: DirectMode,
+      //   simple_select: SimpleSelectMode
+      // }
     });
   }
 
