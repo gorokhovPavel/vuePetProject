@@ -1,0 +1,27 @@
+/* Адаптивность */
+
+/* Mobile */
+.headerSizingAdp {
+    padding: 0 50px;
+}
+.contentSizingAdp {
+    padding : 5px;
+    margin : 20px;
+}
+.divMapAdp {
+
+}
+
+/* Desktop */
+@media screen and ( min-width : 600px ) {
+    .headerSizingAdp {
+        padding: 0 50px;
+    }
+    .contentSizingAdp {
+        padding : 0;
+        margin : 10px 60px;
+    }
+    .divMapAdp {
+        margin: -50px -100px -10px;
+    }
+}
