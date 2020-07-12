@@ -1,218 +1,260 @@
 <template>
-  <div class="optionMap abs">
-    <!-- Отображение карточки опций -->
+  <div class="optionMapAdp absolute">
+    <!-- Набор движущихся окон -->
+    <FrameList />
+    <!-- Отображение опций -->
     <MButton
       v-show="!getShowingObjects.showOptionContent"
       @click="setOptionHead('showOptionContent')"
     >
       <img :src="require('@/content/images/changelayer.png')" />
     </MButton>
-    <!-- Блок карточки опций -->
-    <md-card class="optionMapMain" v-show="getShowingObjects.showOptionContent">
-      <table>
-        <!-- Список кнопок с опциями для карты -->
-        <tr>
-          <td colspan="2">
-            <div class="optionMenuButtons">
-              <MButton
-                v-for="item in getAllMapState.listOfOptions"
-                :key="item.objName"
-                :class="getClassForBoard(item.objName)"
-                @click="setOptionHead(item.objName)"
-              >
-                <img :src="require(`@/content/images/${item.imgName}.png`)" />
-              </MButton>
-            </div>
-          </td>
-        </tr>
-        <!-- Логотип основного слоя и его выпадающий список, заодно и 2д-3д переключатель -->
-        <tr>
-          <td align="left">
-            <span class="md-body-2">{{ $lang.messages.mainLayerName }}</span>
-          </td>
-          <td align="right">
-            <span class="is3dSpan">
-              3D
-            </span>
-            <a-switch
-              v-model="getShowingObjects.is3dVolume"
-              @change="setShowMode('is3dVolume')"
-            >
-            </a-switch>
-          </td>
-        </tr>
+    <!-- Блок опций -->
+    <a-menu
+      v-show="getShowingObjects.showOptionContent"
+      class="optionMapMenu radius border"
+      mode="inline"
+      theme="light"
+      :default-open-keys="['sub0']"
+    >
+      <!-- Выбор даты съемки -->
+      <a-sub-menu mode="vertical" key="sub0">
+        <span slot="title">
+          <a-icon type="database" />
+          <span> {{ $lang.messages.dataSelection }}</span>
+        </span>
+        <a-menu-item class="flexBetween optionMenuItemMinHeight">
+          <span>{{ $lang.messages.mainLayerName }}</span>
+        </a-menu-item>
         <!-- Выпадающий список основного слоя-->
-        <tr>
-          <td colspan="2">
-            <SelectItem
-              :idChild="'mainLayer'"
-              :listData="dateConfigList"
-              :indexList="1"
-            ></SelectItem>
-          </td>
-        </tr>
-        <!-- Активация и скрытие дополнительного слоя-->
-        <tr>
-          <td align="left">
-            <span>
-              {{
-                getShowingObjects.isActiveAddLayer
-                  ? $lang.messages.addLayerName
-                  : $lang.messages.addLayerNameDis
-              }}
-            </span>
-          </td>
-          <td align="right">
-            <a-switch
-              v-model="getShowingObjects.isActiveAddLayer"
-              @change="setShowMode('isActiveAddLayer')"
-            >
-            </a-switch>
-          </td>
-        </tr>
+        <a-menu-item class="flexBetween">
+          <SelectItem
+            :idChild="'mainLayer'"
+            :listData="dateConfigList"
+            :indexList="1"
+          ></SelectItem>
+        </a-menu-item>
+        <a-menu-item class="flexBetween">
+          <!-- Активация и скрытие дополнительного слоя-->
+          <span>
+            {{
+              getShowingObjects.isActiveAddLayer
+                ? $lang.messages.addLayerName
+                : $lang.messages.addLayerNameDis
+            }}
+          </span>
+          <a-switch
+            v-model="getShowingObjects.isActiveAddLayer"
+            @change="setShowMode('isActiveAddLayer')"
+          >
+          </a-switch>
+        </a-menu-item>
         <!-- Выдающий список доп слоя -->
-        <tr v-show="getShowingObjects.isActiveAddLayer">
-          <td>
-            <SelectItem
-              :idChild="'addLayer'"
-              :listData="dateConfigList"
-              :indexList="2"
-            ></SelectItem>
-          </td>
-          <td align="right">
-            <a-switch
-              v-model="getLayersIndexes.isAllLayers"
-              @change="setAllLayers()"
-            >
-            </a-switch>
-          </td>
-        </tr>
+        <a-menu-item
+          v-show="getShowingObjects.isActiveAddLayer"
+          class="flexBetween"
+        >
+          <SelectItem
+            :idChild="'addLayer'"
+            :listData="dateConfigList"
+            :indexList="2"
+          ></SelectItem>
+          <a-switch
+            class="leftMargin"
+            v-model="getLayersIndexes.isAllLayers"
+            @change="setAllLayers()"
+          >
+          </a-switch>
+        </a-menu-item>
         <!-- Слайдер смены слоев-->
-        <tr v-show="getShowingObjects.isActiveAddLayer">
-          <td colspan="2">
-            <a-slider
-              v-model.number="ammountPerc"
-              @change="setOpacityToLayer(ammountPerc)"
-            />
-          </td>
-        </tr>
-        <!-- Детектор изменений, шкала детектора изменений -->
-        <tr v-show="getShowingObjects.isActiveAddLayer">
-          <td>
+        <a-menu-item v-show="getShowingObjects.isActiveAddLayer">
+          <a-slider
+            class="sliderChangeLayers"
+            v-model.number="ammountPerc"
+            @change="setOpacityToLayer(ammountPerc)"
+          />
+        </a-menu-item>
+      </a-sub-menu>
+      <!-- Информационные слои -->
+      <a-sub-menu mode="vertical">
+        <span slot="title">
+          <a-icon type="control" />
+          <span> {{ $lang.messages.infoLayers }}</span>
+        </span>
+        <a-menu-item class="flexBetween optionMenuItemMinHeight">
+          <span>
+            {{ $lang.messages.showMapHeights }}
+          </span>
+          <a-switch
+            class="leftMargin"
+            v-model="getShowingObjects.showColorLayer"
+            @change="setOptionHead('showColorLayer')"
+          >
+          </a-switch>
+        </a-menu-item>
+        <a-menu-item class="flexBetween">
+          <span>
+            {{ $lang.messages.show3dObject }}
+          </span>
+          <a-switch
+            class="leftMargin"
+            v-model="getShowingObjects.show3DFrame"
+            @change="setOptionHead('show3DFrame')"
+          >
+          </a-switch>
+        </a-menu-item>
+        <a-menu-item class="flexBetween">
+          <span>
             {{ $lang.messages.showChangesName }}
-          </td>
-          <td align="right">
-            <a-switch
-              v-model="getShowingObjects.showPointsChangesCheck"
-              @change="
-                setShowChangeOfLayers(getShowingObjects.showPointsChangesCheck)
-              "
-            >
-            </a-switch>
-          </td>
-        </tr>
-        <tr>
-          <td colspan="2" v-show="getAllMapState.showColorScale">
-            <ColorScaleOfChanges />
-          </td>
-        </tr>
-        <!-- Геоплан -->
-        <tr>
-          <td>
+          </span>
+          <a-switch
+            class="leftMargin"
+            v-model="getShowingObjects.showPointsChangesCheck"
+            @change="
+              setShowChangeOfLayers(getShowingObjects.showPointsChangesCheck)
+            "
+          >
+          </a-switch>
+
+          <ColorScaleOfChanges v-if="getAllMapState.showColorScale" />
+        </a-menu-item>
+        <a-menu-item class="flexBetween">
+          <span>
             {{ $lang.messages.showGeoPlan }}
-          </td>
-          <td align="right">
-            <a-switch v-model="isShowGeoPlan" @change="setShowGeoPlan()">
-            </a-switch>
-          </td>
-        </tr>
-        <!-- Распознанные объекты и выгрузка отчета-->
-        <tr>
-          <td colspan="2">
-            <RecognitePanel />
-          </td>
-        </tr>
-        <tr>
-          <td colspan="2">
-            <PdfButton />
-          </td>
-        </tr>
-      </table>
-    </md-card>
-    <!-- 3д модель-->
-    <FrameLayer
-      class="move frame3dPos"
-      :isExit="true"
-      :inWidth="getFrameContentWidthPx(40)"
-      :inShowParam="getAllMapState.show3DFrame"
-      :showName="'show3DFrame'"
-    >
-      <iframe
-        :src="getAllMapState.selected3dFrameSrc"
-        :style="{
-          height: getFrameContentWidthPx(33) + 'px'
-        }"
-        class="fullSize"
-      >
-      </iframe>
-    </FrameLayer>
-    <!-- Панель с набором инструментом -->
-    <FrameLayer
-      class="move listOfInstrumentsPos"
-      :isExit="false"
-      :inShowParam="getAllMapState.showInstrumentsList"
-      :showName="'showInstrumentsList'"
-    >
-      <MButton
-        v-for="item in getAllMapState.listOfInstruments"
-        :key="item.Id"
-        :class="{
-          onBord: getAllMapState.currentInstrument === item.id,
-          hideBord: getAllMapState.currentInstrument !== item.id
-        }"
-        @click="setActivateDrawAction(item.id)"
-      >
-        <img :src="require(`@/content/images/${item.name}.png`)" />
-      </MButton>
-    </FrameLayer>
-    <!-- 2Д и 3Д графики-->
-    <FrameLayer
-      class="move measGraphMapPos"
-      :isExit="true"
-      :isEdit="true"
-      :isSave="true"
-      :inWidth="getFrameContentWidthPx(35)"
-      :inShowParam="getAllMapState.showGraphPlotChart"
-      :showName="'showGraphPlotChart'"
-    >
-      <MeasGraphMap />
-    </FrameLayer>
-    <!-- Медиа -->
-    <FrameLayer
-      class="move mediaPos"
-      :isExit="true"
-      :isSave="true"
-      :inWidth="getFrameContentWidthPx(35)"
-      :inShowParam="getAllMapState.showPhoto"
-      :showName="'showPhoto'"
-    >
-      <MediaToMap />
-    </FrameLayer>
+          </span>
+          <a-switch
+            class="leftMargin"
+            v-model="isShowGeoPlan"
+            @change="setShowGeoPlan()"
+          >
+          </a-switch>
+        </a-menu-item>
+        <a-menu-item>
+          <RecognitePanel />
+        </a-menu-item>
+      </a-sub-menu>
+      <!-- Добавление объектов -->
+      <a-sub-menu mode="vertical">
+        <span slot="title">
+          <a-icon type="plus-square" />
+          <span> {{ $lang.messages.addObjects }}</span>
+        </span>
+        <a-menu-item
+          class="flexBetween"
+          :class="{
+            kpmgBack: getAllMapState.currentInstrument === item.id,
+            whiteBack: getAllMapState.currentInstrument !== item.id
+          }"
+          v-for="item in getAllMapState.listOfInstruments"
+          :key="item.Id"
+        >
+          <a-icon :type="item.name" />
+          <span>
+            {{ $lang.messages[item.type] }}
+          </span>
+          <a-button
+            @click="setActivateDrawAction(item.id)"
+            class="leftMargin addObjButon"
+            icon="plus-square"
+          ></a-button>
+        </a-menu-item>
+      </a-sub-menu>
+      <!-- Детали объектов на карте -->
+      <a-sub-menu mode="vertical">
+        <span slot="title">
+          <a-icon type="setting" />
+          <span> {{ $lang.messages.detailsOfMapObjects }}</span>
+        </span>
+        <a-menu-item class="flexBetween">
+          <span>
+            {{ $lang.messages.build3dGraph }}
+          </span>
+          <a-switch
+            class="leftMargin"
+            v-model="getShowingObjects.is3dVolume"
+            @change="setShowMode('is3dVolume')"
+          >
+          </a-switch>
+        </a-menu-item>
+        <a-menu-item class="flexBetween">
+          <span>
+            {{ $lang.messages.showMapObjTable }}
+          </span>
+          <a-switch
+            class="leftMargin"
+            v-model="getShowingObjects.showTableMap"
+            @change="setShowMode('showTableMap')"
+          >
+          </a-switch>
+        </a-menu-item>
+        <a-menu-item class="flexBetween">
+          <span>
+            {{ $lang.messages.showGraphCard }}
+          </span>
+          <a-switch
+            class="leftMargin"
+            v-model="getShowingObjects.showGraphPlotChart"
+            @change="setShowMode('showGraphPlotChart')"
+          >
+          </a-switch>
+        </a-menu-item>
+        <a-menu-item class="flexBetween">
+          <span>
+            {{ $lang.messages.showMapPoints }}
+          </span>
+          <a-switch
+            class="leftMargin"
+            v-model="getMapObjProperties.isMarkersActive"
+            @change="setChangeModeActiveMapObj('isMarkersActive')"
+          >
+          </a-switch>
+        </a-menu-item>
+        <a-menu-item class="flexBetween">
+          <span>
+            {{ $lang.messages.showMapGeoObject }}
+          </span>
+          <a-switch
+            class="leftMargin"
+            v-model="getMapObjProperties.isMeasureActive"
+            @change="setChangeModeActiveMapObj('isMeasureActive')"
+          >
+          </a-switch>
+        </a-menu-item>
+        <a-menu-item class="flexBetween">
+          <span>
+            {{ $lang.messages.setEditMapObjects }}
+          </span>
+          <a-switch
+            class="leftMargin"
+            v-model="getMapObjProperties.isDrawActive"
+            @change="setActionChangeDrawMode('isDrawActive')"
+          >
+          </a-switch>
+        </a-menu-item>
+      </a-sub-menu>
+      <!-- Детали объектов на карте -->
+      <a-sub-menu mode="vertical">
+        <span slot="title">
+          <a-icon type="file" />
+          <span> {{ $lang.messages.infoAboutReport }}</span>
+        </span>
+        <a-menu-item class="flexBetween">
+          <PdfButton />
+        </a-menu-item>
+      </a-sub-menu>
+    </a-menu>
   </div>
 </template>
 
 <script>
+import MButton from "../../Additional/MButton.vue";
 import { mapMutations, mapGetters, mapActions } from "vuex";
 import { layer as Layer } from "../../../utils";
-
-import MediaToMap from "../Instruments/MediaToMap.vue";
-import MeasGraphMap from "../Instruments/MeasGraphMap.vue";
-import FrameLayer from "./FrameLayer.vue";
 import PdfButton from "../../Pdf/PdfButton.vue";
 import RecognitePanel from "./RecognitePanel.vue";
 import ColorScaleOfChanges from "./ColorScaleOfChanges.vue";
 import SelectItem from "./SelectItem.vue";
-import MButton from "../../Additional/MButton.vue";
+import FrameList from "./FrameList.vue";
 
 export default {
   components: {
@@ -220,10 +262,8 @@ export default {
     SelectItem,
     ColorScaleOfChanges,
     RecognitePanel,
-    PdfButton,
-    FrameLayer,
-    MeasGraphMap,
-    MediaToMap
+    FrameList,
+    PdfButton
   },
   data: () => ({
     ammountPerc: 100,
@@ -235,12 +275,12 @@ export default {
   computed: {
     ...mapGetters([
       "getAllMapState",
-      "getFrameContentWidthPx",
-      "getClassForBoard",
       "getShowingObjects",
       "getLayersIndexes",
       "getLocalMap",
-      "getMapModel"
+      "getMapModel",
+      "getInstrument",
+      "getMapObjProperties"
     ])
   },
   created() {
@@ -256,13 +296,18 @@ export default {
       "setShowChangeOfLayers",
       "setRenderDefault",
       "setRenderLayers",
-      "setActivateDrawAction"
+      "setActivateDrawAction",
+      "setActionChangeDrawMode"
     ]),
     ...mapMutations([
       "setShowMode",
       "setPrevChangeOpacity",
       "setStateMapValue"
     ]),
+    setChangeModeActiveMapObj(inStateElem) {
+      this.setShowMode(inStateElem);
+      this.getInstrument.setImagesForDrawObjects();
+    },
     setAllLayers() {
       this.setShowMode("isAllLayers");
       const mainLayerIndex = this.getLayersIndexes.currentMainIndex;
@@ -342,61 +387,25 @@ export default {
   }
 };
 </script>
-
 <style>
-.is3dSpan {
-  vertical-align: 4px;
+.optionMenuItemMinHeight.ant-menu-item {
+  min-width: 300px;
 }
-.optionMap {
-  top: 11%;
-  right: 1%;
+.ant-menu-sub.ant-menu-sub.ant-menu-submenu-content {
+  border: 1px solid var(--light-gray);
 }
-.optionMap .md-field {
-  width: 100%;
-  min-height: 0px;
-  margin: 0;
-  padding-top: 0;
-  display: -webkit-box;
-  display: flex;
-  font-family: inherit;
+.sliderChangeLayers.sliderChangeLayers {
+  margin-left: 0px;
 }
-.optionMenuButtons {
-  display: flex;
-  justify-content: space-between;
+.addObjButon {
+  color: var(--kpmg);
 }
-.optionMapMain {
-  padding: 5px 5px 15px 10px;
-}
-.optionMapMain td {
-  padding: 10px 0;
-  margin: 0;
-}
-.frame3dPos {
-  top: 20%;
-  left: 30%;
-}
-.md-card {
-  display: inline-block;
-  vertical-align: top;
+.addObjButon > .anticon {
+  padding: 9px 8px;
 }
 .reportHref {
   font-size: 27px;
   color: #4a10e4;
   margin-right: 5px;
-}
-.mapboxgl-ctrl-group {
-  display: none;
-}
-.measGraphMapPos {
-  top: 25%;
-  left: 25%;
-}
-.mediaPos {
-  top: 30%;
-  left: 30%;
-}
-.listOfInstrumentsPos {
-  top: 11%;
-  left: 35%;
 }
 </style>
