@@ -1,13 +1,17 @@
 <template>
-  <div v-if="getAllMapState.mapModel" class="divMap noselect">
+  <div v-if="getMapModel" class="overHidden divMapAdp noselect">
     <mapbox
-      class="map"
-      :access-token="getAllMapState.mapModel.accessToken"
+      class="map hideBord"
+      v-if="getMapModel.accessToken"
+      :access-token="getMapModel.accessToken"
       :map-options="{
         style: mapStyle,
-        center: getAllMapState.mapModel.center,
-        zoom: 15,
-        attributionControl: false
+        center: getMapModel.center,
+        zoom: getZoomMap
+      }"
+      :scale-control="{
+        show: true,
+        position: 'bottom-right'
       }"
       @map-init="setMapStart"
       @map-render="setMapRendering"
@@ -19,10 +23,10 @@
     />
     <OptionMap />
     <ObjectsMapTable :tableName="'mapObjListTable'" />
-    <NavigationMap v-if="false" :navLonLat="lonLat" />
+    <NavigationMap v-if="lonLat" :navLonLat="lonLat" />
     <vueGallery
-      :index="getAllMapState.mediaIndex"
-      :images="getAllMapState.mediaImageList"
+      :index="getMediaData.mediaIndex"
+      :images="getMediaData.mediaImageList"
       @close="setStateMapValue({ field: 'mediaIndex', value: null })"
     />
   </div>
@@ -45,7 +49,7 @@ export default {
     ObjectsMapTable
   },
   data: () => ({
-    lonLat: "",
+    lonLat: null,
     mapStyle: "mapbox://styles/mapbox/emerald-v8"
   }),
   created() {
@@ -53,7 +57,7 @@ export default {
     this.setLoadMapData();
   },
   computed: {
-    ...mapGetters(["getAllMapState", "getModalData"])
+    ...mapGetters(["getModalData", "getMapModel", "getMediaData", "getZoomMap"])
   },
   methods: {
     ...mapActions([
@@ -71,7 +75,6 @@ export default {
     setScaleLatLon(map, e) {
       this.lonLat = `${e.lngLat.lat.toFixed(10)} ${e.lngLat.lng.toFixed(10)}`;
       this.setActionMoveMouse(e);
-      this.setCloseNotify();
     },
     setClick(map, e) {
       this.setActionClick(e);
@@ -81,30 +84,24 @@ export default {
     },
     setContextMenu() {
       this.setStateMapValue({ field: "currentInstrument", value: 0 });
-    },
-    setCloseNotify() {
-      if (this.getModalData.activeSnack === true) {
-        try {
-          setTimeout(() => {
-            this.setStateMapValue({ field: "activeSnack", value: false });
-          }, 500);
-        } catch (error) {
-          //todo error handler
-        }
-      }
     }
   }
 };
 </script>
 <style>
-.divMap {
-  overflow: hidden;
-}
 .map {
-  width: 102%;
-  height: 91vh;
+  overflow: hidden;
+  min-height: var(--contentHeight);
 }
-.mapboxgl-ctrl-logo {
-  visibility: hidden;
+a.mapboxgl-ctrl-logo,
+.mapboxgl-ctrl.mapboxgl-ctrl-attrib.mapboxgl-compact,
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl {
+  display: none;
+}
+.mapboxgl-ctrl-attrib {
+  display: none;
+}
+.mapboxgl-ctrl-bottom-left .mapboxgl-ctrl {
+  margin: 0 0 15px 10px;
 }
 </style>
