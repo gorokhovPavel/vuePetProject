@@ -9,12 +9,8 @@
         center: getMapModel.center,
         zoom: getZoomMap
       }"
-      :scale-control="{
-        show: true,
-        position: 'bottom-right'
-      }"
-      @map-init="setMapStart"
       @map-render="setMapRendering"
+      @map-init="setMapStart"
       @map-click="setClick"
       @map-mouseup="setClick"
       @map-dblclick="setDblClick"
@@ -54,6 +50,7 @@ export default {
   }),
   created() {
     this.setStateMapValue({ field: "mapId", value: this.$route.params.Id });
+    this.setStateMapValue({ field: "isLayersRender", value: true });
     this.setLoadMapData();
   },
   computed: {
