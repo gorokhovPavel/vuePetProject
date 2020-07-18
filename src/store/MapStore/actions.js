@@ -59,7 +59,7 @@ const actions = {
       state.listOfInstruments
     );
     const typeDrawId = typeDraw ? typeDraw.id : state.currentInstrument;
-    let typeObjName = state.listOfInstruments[typeDrawId - 1].name;
+    let typeObjName = state.listOfInstruments[typeDrawId - 1].type;
 
     if (typeDrawId > 3 && typeDrawId !== 7) {
       //В случае высотной метки оставим тип Точка. в остальных - меняем на соответствующий тим маркера
@@ -79,7 +79,7 @@ const actions = {
       type: typeObjName,
       name: nameObject,
       date: addExtension.getCurrentDate(),
-      numColor: 3,
+      numColor: typeDrawId !== 7 ? 3 : -1,
       isReport: true,
       id: currentObj.id
     };
@@ -174,17 +174,12 @@ const actions = {
   },
 
   //Обертка над возвратом или сохранением схем
-  setConfirmActionMapObj({ commit, dispatch }, inSaveAction) {
-    let actionPromise = new Promise(resolve =>
+  setConfirmActionMapObj({ state, dispatch }, inSaveAction) {
+    new Promise(resolve =>
       resolve(dispatch("setActionChangeColorAndReport", inSaveAction))
-    );
-    actionPromise.then(() => {
+    ).then(() => {
       if (inSaveAction) {
-        commit("setStateMapValue", { field: "activeSnack", value: true });
-        commit("setStateMapValue", {
-          field: "activeSnackTitle",
-          value: lang.getMessages("saveMapObjSuccess")
-        });
+        state.antVuex.message.success(lang.getMessages("saveMapObjSuccess"));
       }
     });
   },
@@ -242,6 +237,8 @@ const actions = {
   setLoadMapData({ state, commit, dispatch }) {
     commit("setMapObjListDefault");
     commit("setStateMapValue", { field: "mapModel", value: null });
+    commit("setStartInfoCards");
+
     addExtension.setForAxiosWithState(commit, {
       letUrlAction: api.getMapApi(state.mapId),
       goodCallBack: response => {
@@ -285,7 +282,9 @@ const actions = {
     //Если не сформирован главный объект карты - выходим
     if (!state.curMap) return;
     //Рендеринг отснятых слоев
-    if (state.isLayersRender) dispatch("setRenderLayers");
+    if (state.isLayersRender) {
+      dispatch("setRenderLayers");
+    }
     //Рендеринг имеющихся маркеров и интсрументов измерения
     if (!state.mapObjListDraw) {
       privateActionsMap._setRenderDraw({ state, commit, getters, dispatch });
@@ -316,29 +315,14 @@ const actions = {
     layerItem = null;
   },
 
-  setChangeZoom: (commit, isUp) => {
-    let elemZoom = isUp ? ".mapboxgl-ctrl-zoom-in" : ".mapboxgl-ctrl-zoom-out";
-    document.querySelector(elemZoom).click();
-  },
-
-  setGoHomeLocation: ({ state }) => {
-    const mapModel = state.mapModel.map;
-    state.curMap.fitBounds(
-      [
-        [mapModel.minLon, mapModel.minLat],
-        [mapModel.maxLon, mapModel.maxLat]
-      ],
-      { maxZoom: 15 }
-    );
-  },
-
-  setActivateDrawAction: ({ commit, getters }, inTypeInstrumnet) => {
+  setActivateDrawAction: ({ commit, state, getters }, inTypeInstrumnet) => {
     commit("setLayersRenderDisable");
     commit("setStateMapValue", {
       field: "currentInstrument",
       value: inTypeInstrumnet
     });
-    getters.getInstrument.setPropForMark(inTypeInstrumnet);
+    const drawMode = getters.getInstrument.getPropForMark(inTypeInstrumnet);
+    state.mapObjListDraw.changeMode(drawMode?.name, drawMode?.prop);
   },
 
   //Ведение мыши
@@ -365,10 +349,6 @@ const actions = {
   setShowChangeOfLayers({ state, commit }, isShowMode) {
     commit("setStateMapValue", {
       field: "showPointsChangesCheck",
-      value: isShowMode
-    });
-    commit("setStateMapValue", {
-      field: "showColorScale",
       value: isShowMode
     });
     new Promise(resolve => {
