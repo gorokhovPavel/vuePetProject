@@ -1,58 +1,59 @@
 <template>
-    <table class='abs navigationMap'>
-        <tr>
-            <td>
-                <mButton @click='setChangeZoom(true)' >
-                    <img :src="require('content/images/up.png')" >
-                </mButton>
-            </td>
-        </tr>
-        <tr>
-            <td>
-                <mButton @click='setChangeZoom(false)' >
-                    <img :src="require('content/images/down.png')" >
-                </mButton>
-            </td>
-        </tr>
-        <tr>
-            <td>
-                <mButton @click='setGoHomeLocation()'>
-                    <img :src="require('content/images/compass.png')" >
-                </mButton>
-            </td>
-        </tr>
-        <tr>
-            <td>
-                {{navLonLat}}
-            </td>
-        </tr>
-    </table>
+  <div>
+    <div class="absolute navigationPosAdp navigationStyle">
+      <a-button class="" @click="setZoomUp" icon="plus-circle" />
+      <a-button class="" @click="setZoomDown" icon="minus-circle"></a-button>
+      <a-button class="" @click="setGoToStart" icon="compass"></a-button>
+    </div>
+    <span class="absolute scaleLonLat scaleLonLatPosAdp">
+      {{ navLonLat }}
+    </span>
+  </div>
 </template>
-
 <script>
-    import { mapActions, mapMutations, mapGetters } from 'vuex'
-    import mButton from 'components/Additional/MButton'
-    
-    export default {
-
-        components : { mButton },
-        props : [ 'navLonLat' ],
-        computed : {
-            ...mapGetters(['getAllMapState'])
-        },
-        methods: {
-            ...mapActions([ 'setChangeZoom', 'setGoHomeLocation' ])
+import { mapGetters } from "vuex";
+export default {
+  props: ["navLonLat"],
+  data: () => ({
+    zoom: null
+  }),
+  created() {
+    this.zoom = this.getZoomMap;
+  },
+  computed: {
+    ...mapGetters(["getLocalMap", "getMapModel", "getZoomMap"])
+  },
+  methods: {
+    setZoomUp() {
+      this.zoom += 1;
+      this.getLocalMap.zoomTo(this.zoom);
+    },
+    setZoomDown() {
+      this.zoom -= 1;
+      this.getLocalMap.zoomTo(this.zoom);
+    },
+    setGoToStart() {
+      this.zoom = this.getZoomMap;
+      this.getLocalMap.fitBounds(
+        [this.getMapModel.center, this.getMapModel.center],
+        {
+          maxZoom: this.getZoomMap
         }
+      );
     }
+  }
+};
 </script>
 
 <style>
-    .navigationMap, .lonLatPos {
-        bottom: 2%;
-        right: 1%;
-    }
-
-    .navigationMap td {
-        text-align: right;
-    }
+.navigationStyle {
+  display: flex;
+}
+.navigationStyle > button {
+  width: 45px;
+  margin-right: 10px;
+}
+.scaleLonLat {
+  color: var(--kpmg);
+}
 </style>
