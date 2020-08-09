@@ -1,31 +1,42 @@
 <template>
-  <div
-    v-show="getShowingObjects.showTableMap"
-    class="tableMapPos absolute whiteBack radius border point"
-  >
-    <div class="tableMapMain">
-      <div class="flexBetween">
-        <a-button @click="setActionMapObj(false)" icon="rollback"></a-button>
-        <a-input-search
-          class="searchTable"
-          allowClear
-          :placeholder="$lang.messages.filterText"
-          v-model="searchQuery"
+  <div>
+    <div
+      v-show="getShowingObjects.showTableMap"
+      class="tableMapPos absolute whiteBack radius border point"
+    >
+      <div class="tableMapMain">
+        <div class="flex justBetween buttonContainer">
+          <a-button @click="setActionMapObj(false)" icon="rollback"></a-button>
+          <a-button @click="setActionMapObj(true)" icon="save"></a-button>
+          <a-input-search
+            allowClear
+            :placeholder="$lang.messages.filterText"
+            v-model="searchQuery"
+          />
+          <a-button
+            @click="setShowMode('showTableMap')"
+            icon="menu-unfold"
+          ></a-button>
+        </div>
+        <GridTable
+          :tableNameInState="tableName"
+          :columnsData="columnsData"
+          :rowsData="rowsData"
+          :filterKey="searchQuery"
         />
-        <a-button @click="setActionMapObj(true)" icon="save"></a-button>
       </div>
-      <GridTable
-        :tableNameInState="tableName"
-        :columnsData="columnsData"
-        :rowsData="rowsData"
-        :filterKey="searchQuery"
-      />
     </div>
+    <a-button
+      v-show="!getShowingObjects.showTableMap"
+      class="absolute buttonTableMapPos"
+      @click="setShowMode('showTableMap')"
+      icon="menu-fold"
+    ></a-button>
   </div>
 </template>
 <script>
 import GridTable from "../../Additional/Table/GridTable.vue";
-import { mapGetters, mapMutations } from "vuex";
+import { mapGetters, mapMutations, mapActions } from "vuex";
 
 export default {
   components: { GridTable },
@@ -75,15 +86,8 @@ export default {
   },
   methods: {
     ...mapMutations(["setStateMapValue", "setShowMode"]),
+    ...mapActions(["setActionModal"]),
     setActionMapObj(isSaveAction) {
-      this.modalSureSaveName = isSaveAction
-        ? this.$lang.messages.sureSaveMapObj
-        : this.$lang.messages.sureCancelMapObj;
-      this.setStateMapValue({ field: "activeModal", value: true });
-      this.setStateMapValue({
-        field: "activeModalTitle",
-        value: this.modalSureSaveName
-      });
       this.setStateMapValue({
         field: "activeConfrmDialogAction",
         value: {
@@ -91,11 +95,21 @@ export default {
           dataAction: isSaveAction
         }
       });
+
+      this.modalSureSaveName = isSaveAction
+        ? this.$lang.messages.sureSaveMapObj
+        : this.$lang.messages.sureCancelMapObj;
+
+      this.setActionModal(this.modalSureSaveName);
     }
   }
 };
 </script>
 <style>
+.buttonTableMapPos {
+  top: 12%;
+  right: 4.5%;
+}
 .tableMapPos {
   top: 12%;
   right: 4.5%;
@@ -103,12 +117,18 @@ export default {
 .tableMapPos > .tableMapMain {
   min-width: 350px;
   max-width: 500px;
-  height: calc(70vh);
+  height: calc(76vh);
   overflow-y: auto;
 
   padding: 10px;
 }
-.searchTable.searchTable {
-  width: 75%;
+.buttonContainer > button:not(:first-child) {
+  margin: 0 5px;
+}
+.buttonContainer > button:last-child {
+  margin-left: 5px;
+}
+.buttonContainer > .ant-input-search {
+  width: auto;
 }
 </style>
