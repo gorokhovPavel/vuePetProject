@@ -2,16 +2,17 @@ import Vue from "vue";
 import Router from "vue-router";
 import { store } from "../store";
 
-import menu from "../components/Menu";
-import mainMap from "../components/Map/MainMap";
-import login from "../components/Auth/Login";
-import register from "../components/Auth/Register";
-import sendEmail from "../components/Auth/SendEmail";
-import сonfirmEmailCode from "../components/Auth/ConfirmEmailCode";
-import successAuth from "../components/Auth/SuccessAuth";
-import accountData from "../components/Auth/AccountData";
-import restorePassword from "../components/Auth/RestorePassword";
-import changePass from "../components/Auth/ChangePass";
+import Menu from "../components/Main/Menu";
+import MainMap from "../components/Map/MainMap";
+import Login from "../components/Auth/Login";
+import Register from "../components/Auth/Register";
+import SendEmail from "../components/Auth/SendEmail";
+import ConfirmEmailCode from "../components/Auth/ConfirmEmailCode";
+import SuccessAuth from "../components/Auth/SuccessAuth";
+import AccountData from "../components/Auth/AccountData";
+import RestorePassword from "../components/Auth/RestorePassword";
+import ChangePass from "../components/Auth/ChangePass";
+import Incidents from "../components/Incidents/IncMain.vue";
 
 Vue.use(Router);
 
@@ -20,52 +21,57 @@ const router = new Router({
     {
       path: "/",
       name: "Menu",
-      component: menu
+      component: Menu
     },
     {
       path: "/Map/:Id",
       name: "Map",
-      component: mainMap
+      component: MainMap
     },
     {
       path: "/Login",
       name: "Login",
-      component: login
+      component: Login
+    },
+    {
+      path: "/Incidents",
+      name: "Incidents",
+      component: Incidents
     },
     {
       path: "/Register",
       name: "Register",
-      component: register
+      component: Register
     },
     {
       path: "/SendEmail",
       name: "SendEmail",
-      component: sendEmail
+      component: SendEmail
     },
     {
       path: "/ConfirmEmailCode",
       name: "ConfirmEmailCode",
-      component: сonfirmEmailCode
+      component: ConfirmEmailCode
     },
     {
       path: "/SuccessAuth",
       name: "SuccessAuth",
-      component: successAuth
+      component: SuccessAuth
     },
     {
       path: "/AccountData",
       name: "AccountData",
-      component: accountData
+      component: AccountData
     },
     {
       path: "/RestorePassword",
       name: "RestorePassword",
-      component: restorePassword
+      component: RestorePassword
     },
     {
       path: "/ChangePass",
       name: "ChangePass",
-      component: changePass
+      component: ChangePass
     },
     {
       path: "/Base",
