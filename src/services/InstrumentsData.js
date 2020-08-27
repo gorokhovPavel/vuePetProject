@@ -1,6 +1,6 @@
 import Vue from "vue";
 import "@mapbox/mapbox-gl-draw/css";
-import mapboxDraw from "@mapbox/mapbox-gl-draw/js";
+import MapboxDraw from "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw";
 import {
   CircleMode,
   DragCircleMode,
@@ -9,7 +9,6 @@ import {
 } from "mapbox-gl-draw-circle";
 import PopupContent from "../components/Map/Instruments/PopupContent";
 import { lang } from "../language";
-
 import {
   addExtension,
   buildChart,
@@ -55,64 +54,57 @@ export default class Instrument {
   }
 
   //Объявление нового объекта с измерялками
-  getMapBoxDraw() {
-    return new mapboxDraw({
-      defaultMode: "draw_circle",
-      userProperties: true,
-      styles: drawStyles.styleMapBoxDrawList(),
-      modes: {
-        ...mapboxDraw.modes,
-        draw_circle: CircleMode,
-        drag_circle: DragCircleMode,
-        direct_select: DirectMode,
-        simple_select: SimpleSelectMode
-      }
-      // defaultMode: "draw_circle",
-      // userProperties: true,
-      // styles: drawStyles.styleMapBoxDrawList(),
-      // controls: {
-      //   polygon: true,
-      //   line_string: true,
-      //   point: true,
-      //   trash: true
-      // },
-      // modes: {
-      //   ...mapboxDraw.modes,
-      //   draw_circle: CircleMode,
-      //   drag_circle: DragCircleMode,
-      //   direct_select: DirectMode,
-      //   simple_select: SimpleSelectMode
-      // }
+  setMapBoxDraw = () =>
+    new Promise(resolve => {
+      resolve(
+        new MapboxDraw({
+          userProperties: true,
+          styles: drawStyles.styleMapBoxDrawList(),
+          modes: {
+            ...MapboxDraw.modes,
+            draw_circle: CircleMode,
+            drag_circle: DragCircleMode,
+            direct_select: DirectMode,
+            simple_select: SimpleSelectMode
+          }
+        })
+      );
+    }).then(result => {
+      this.commitData("setStateMapValue", {
+        field: "mapObjListDraw",
+        value: result
+      });
     });
-  }
 
   //Акативация нового инструмента
-  setPropForMark(inItem) {
+  getPropForMark(inItem) {
     let drawTypeName = null;
+    const drawTypeProp = inItem === 8 ? { initialRadiusInKm: 0.02 } : {};
+
     switch (inItem) {
       //Линия
       case 2:
-        drawTypeName = ".mapbox-gl-draw_line";
+        drawTypeName = "draw_line_string";
         break;
       //Полигон
       case 3:
       case 7:
-        drawTypeName = ".mapbox-gl-draw_polygon";
+        drawTypeName = "draw_polygon";
         break;
       //Точка
       case 1:
       case 4:
       case 5:
       case 6:
-        drawTypeName = ".mapbox-gl-draw_point";
+      case 9:
+        drawTypeName = "draw_point";
         break;
-      //Корзина (удаление)
-      case 0:
-        drawTypeName = ".mapbox-gl-draw_trash";
+      case 8:
+        drawTypeName = "draw_circle";
         break;
     }
-    const buttonDraw = document.querySelector(drawTypeName);
-    if (buttonDraw) document.querySelector(drawTypeName).click();
+
+    return { name: drawTypeName, prop: drawTypeProp };
   }
 
   //Вызов действия объекта карты ( или точка входа для обработчика двойного клика )
@@ -142,20 +134,10 @@ export default class Instrument {
       !inSelObjDraw.properties.id &&
       !isInfoMenu
     ) {
-      this.commitData("setStateMapValue", {
-        field: "activeModal",
-        value: true
-      });
-      this.commitData("setStateMapValue", {
-        field: "activeModalTitle",
-        value: sureMathCalcTitle
-      });
-      this.commitData("setStateMapValue", {
-        field: "activeConfrmDialogAction",
-        value: {
-          nameAction: nameAction,
-          dataAction: inSelObjDraw
-        }
+      this.dispatchData("setActionModal", {
+        titleAction: sureMathCalcTitle,
+        nameAction: nameAction,
+        dataAction: inSelObjDraw
       });
     } else {
       this.dispatchData(nameAction, inSelObjDraw);
@@ -168,56 +150,55 @@ export default class Instrument {
     const objectForDelete =
       inSelObjDraw || addExtension.getSelectDraw(this.stateData.mapObjListDraw);
 
-    this.commitData("setStateMapValue", {
-      field: "activeModal",
-      value: true
-    });
-    this.commitData("setStateMapValue", {
-      field: "activeModalTitle",
-      value: sureDelTitle
-    });
-    this.commitData("setStateMapValue", {
-      field: "activeConfrmDialogAction",
-      value: {
-        nameAction: "setActionDelMapObj",
-        dataAction: objectForDelete
-      }
+    if (!objectForDelete) return;
+
+    this.dispatchData("setActionModal", {
+      titleAction: sureDelTitle,
+      nameAction: "setActionDelMapObj",
+      dataAction: objectForDelete
     });
   }
 
   //Выделяем объекты, на которые был наведен курсор
   setMouseMoveActivateOverObj(inEvent) {
-    //Ищем все объекты на карте с префиксом polygonObj
-    const styleLayerArr = this.stateData.curMap
-      .getStyle()
-      .layers.filter(item => (item.source || []).indexOf("polygonObj") !== -1);
-
-    //Собираем айдишники слоев
-    let features = [];
-    styleLayerArr.forEach(item => {
-      const localFeatures = this.stateData.curMap.queryRenderedFeatures(
-        inEvent.point,
-        {
-          layers: [item.id]
-        }
+    let layers = [];
+    try {
+      layers = this.stateData.curMap.getStyle().layers;
+    } catch (error) {
+      console.log("Minor error with this.stateData.curMap.getStyle().layers");
+    } finally {
+      //Ищем все объекты на карте с префиксом polygonObj
+      const styleLayerArr = layers.filter(
+        item => (item.source || []).indexOf("polygonObj") !== -1
       );
-      if (localFeatures.length) {
-        features = [...features, localFeatures];
-      }
-    });
 
-    if (features.length !== 0) {
-      this._deleteAllPopup();
-
-      let featureId = features[0][0]?.layer?.id;
-      featureId = featureId.replace("polygonObj", "");
-
-      const mapObjElem = this.getFetureList(featureId);
-      this.stateData.mapObjListDraw.changeMode("direct_select", {
-        featureId: featureId
+      //Собираем айдишники слоев
+      let features = [];
+      styleLayerArr.forEach(item => {
+        const localFeatures = this.stateData.curMap.queryRenderedFeatures(
+          inEvent.point,
+          {
+            layers: [item.id]
+          }
+        );
+        if (localFeatures.length) {
+          features = [...features, localFeatures];
+        }
       });
 
-      this.setAddPopUp(mapObjElem);
+      if (features.length !== 0) {
+        this._deleteAllPopup();
+
+        let featureId = features[0][0]?.layer?.id;
+        featureId = featureId.replace("polygonObj", "");
+
+        const mapObjElem = this.getFetureList(featureId);
+        this.stateData.mapObjListDraw.changeMode("direct_select", {
+          featureId: featureId
+        });
+
+        this.setAddPopUp(mapObjElem);
+      }
     }
   }
 
@@ -289,6 +270,7 @@ export default class Instrument {
       }
       //Обычные метки
       else if (inInst > 3 && inInst < 7) {
+        // TODO убрать этот пиздец выше в условиях и прописать нормальную логику!
         this.commitData("setStateMapValue", {
           field: "currentInstrument",
           value: inInst
@@ -313,7 +295,7 @@ export default class Instrument {
           let coord = this.mathCalcHeight.getStartCoord(curDrawItem);
           this.setAddPopUp(curDrawItem, [coord[0], coord[1]]);
         }
-        //Добавляем свойство в карточку меню
+        //Инфокарточка
         if (inInst === 7) {
           const newMenuInfo = {
             ...this.stateData.menuInfoData,
@@ -324,11 +306,36 @@ export default class Instrument {
             value: newMenuInfo
           });
         }
+        //Инцидент
+      } else if (inInst === 9) {
+        this.commitData("setStateMapValue", {
+          field: "isIncModalActive",
+          value: true
+        });
+
+        this.commitData("setStateMapValue", {
+          field: "incModalData",
+          value: null
+        });
+
+        this.commitData("setStateMapValue", {
+          field: "incObj",
+          value: { id: curDrawItem.id }
+        });
       }
       //Клик на имеющийся объект
       else if (selectDrawItem) {
         this.setImagesForDrawObjects(selectDrawItem.id);
         const curDrawList = this.getFetureList(selectDrawItem.id);
+
+        //И снова, если инфокарта
+        if (curDrawList[0]?.chartData?.isMenuInfo) {
+          this.commitData("setStateMapValue", {
+            field: "menuInfoData",
+            value: { id: selectDrawItem.id }
+          });
+        }
+
         curDrawItem =
           curDrawList.length > 0
             ? this.getFetureList(selectDrawItem.id)[0]
@@ -342,7 +349,8 @@ export default class Instrument {
   async setRequestActionInstr(inSelDraw) {
     //Перегружаем сервис вычислений
     let resMathData = null;
-    const measurItem = this.stateData.currentInstrument;
+    const measurItem =
+      this.stateData.currentInstrument || inSelDraw?.measurItem;
     const mathCalcHeightWithModel = new MathCalcHeight(
       this.stateData.mapModel,
       this.stateData.currentMainIndex,
@@ -362,8 +370,24 @@ export default class Instrument {
     inSelDraw =
       stateSelDraw && stateSelDraw.length > 0 ? stateSelDraw[0] : inSelDraw;
 
+    //Инциденты
+    if (measurItem === 9) {
+      this.commitData("setStateMapValue", {
+        field: "isIncModalActive",
+        value: true
+      });
+
+      this.commitData("setStateMapValue", {
+        field: "incModalData",
+        value: inSelDraw?.chartData
+      });
+    }
+
     //Метки
-    if (measurItem > 3 || inSelDraw.geometry.type === "Point") {
+    if (
+      (measurItem > 3 || inSelDraw.geometry.type === "Point") &&
+      measurItem !== 9
+    ) {
       if (inSelDraw.chartData) {
         const { chartData } = inSelDraw;
         this.commitData("setStateMapValue", {
@@ -380,6 +404,7 @@ export default class Instrument {
         });
       }
     }
+
     //Линия
     if (measurItem === 2 || inSelDraw.geometry.type === "LineString") {
       if (inSelDraw.chartData && !isRecount) {
@@ -392,6 +417,7 @@ export default class Instrument {
         );
       }
     }
+
     //Полигон
     else if (inSelDraw.geometry.type === "Polygon") {
       //Вычисление объема
@@ -424,6 +450,7 @@ export default class Instrument {
             this.stateData.is3dVolume
           );
         }
+        //Инфокарточка
       } else {
         resMathData = { ...inSelDraw?.chartData, isMenuInfo: true };
         //Если объект уже создан, то подтягиваем его свойства
@@ -487,16 +514,21 @@ export default class Instrument {
         let imgForDraw = "";
         let drawType = item.geometry.type;
         let drawCoord = item.geometry.coordinates;
-        let drawTypeView = item.properties.type;
+        let drawTypeView = item?.properties?.type || item?.geometry?.type;
+
+        let isReport =
+          item.properties?.isReport !== null
+            ? item?.properties?.isReport
+            : true;
+
         let inColor = addExtension.getValueFromNum(
           inListOfColors,
-          item.properties.numColor
+          item?.properties?.numColor
         );
-        let isReport =
-          item.properties.isReport !== null ? item.properties.isReport : true;
 
         if (inTblMapObj) {
           const elemFromTblMapObj = inTblMapObj.find(x => x.id === item.id);
+          //Первая установка цвета - смотрит на параметр, что установлен в таблице
           inColor = elemFromTblMapObj
             ? addExtension.getValueFromNum(
                 inListOfColors,
@@ -506,13 +538,22 @@ export default class Instrument {
           isReport = elemFromTblMapObj ? elemFromTblMapObj.isReport : false;
         }
 
+        //Ну и если это инфокарточка с установленным параметром готовности, снова меняем цвет
+        inColor = addExtension.getColorFromIndicateInfoCard(
+          inColor,
+          item,
+          this.stateData.infoCardFinalReadyParam
+        );
+
         if (
           drawType !== "LineString" &&
           drawType !== "Polygon" &&
           drawTypeView &&
           inIsMarkersActive
         ) {
-          imgForDraw = require(`@/content/images/${drawTypeView}Draw.png`);
+          drawTypeView = drawTypeView === "incident" ? "point" : drawTypeView;
+          const drawPng = `${drawTypeView}Draw.png`.toLowerCase();
+          imgForDraw = require(`@/content/images/${drawPng}`);
           inMapObj.loadImage(imgForDraw, (error, image) => {
             inMapObj.addImage(`imgDraw${item.id}`, image);
             inMapObj.addLayer({
@@ -594,7 +635,7 @@ export default class Instrument {
     });
   }
 
-  //Меняем видимость объектов класса mapBoxDraw на карте
+  //Меняем видимость объектов класса MapboxDraw на карте
   setToggleDrawObjFromMap(isShow) {
     this._deleteAllPopup();
 
@@ -607,16 +648,6 @@ export default class Instrument {
         return null;
       }
     });
-
-    if ((this.stateData.mapObjListServer || []).length > 0) {
-      const firstDrawItem = this.stateData.mapObjListServer[0];
-      // eslint-disable-next-line no-unused-vars
-      const { measurItem } = firstDrawItem;
-      //if( measurItem === 2 || measurItem === 3) {
-      //this.stateData.mapObjListDraw.changeMode( 'direct_select', { featureId : firstDrawItem.id } );
-      //}
-    }
-
     circleLayerArr.forEach(x =>
       inMapObj.setLayoutProperty(
         x.id,
@@ -652,7 +683,7 @@ export default class Instrument {
       );
     }
 
-    //Удаляем все эти точки`
+    //Удаляем все эти точки
     circleLayerArr.forEach(x => {
       mapObj.removeLayer(x.id);
       mapObj.removeSource(x.source);
@@ -760,15 +791,20 @@ export default class Instrument {
       mapPartInfo = this.mathCalcHeight.getTotalDistanceStr(drawElem, true);
     } else {
       mapPartInfo =
-        drawElem.properties.pointInfo !== undefined
+        drawElem?.properties?.pointInfo !== undefined
           ? drawElem.properties.pointInfo
           : currentText;
     }
 
     //Если карточка меню
-    const menuInfoData = drawElem?.chartData?.isMenuInfo
+    let menuInfoData = drawElem?.chartData?.isMenuInfo
       ? { ...drawElem.chartData, date: drawElem?.properties?.date }
       : null;
+
+    //Ecли инцидент
+    if (drawElem?.measurItem === 9 && drawElem?.chartData) {
+      mapPartInfo = drawElem?.chartData?.inc;
+    }
 
     //Если карточка меню при первом появлении
     const isMenuInfoStartPopup = drawElem?.properties?.isMenuInfoStartPopup;
