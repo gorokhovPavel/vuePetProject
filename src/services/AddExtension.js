@@ -1,20 +1,53 @@
 export default class AddExtension {
   static getListColor() {
     return [
-      { id: 1, value: "#ff0000" },
-      { id: 2, value: "#00ff00" },
-      { id: 3, value: "#448aff" },
-      { id: 4, value: "#ffff00" },
-      { id: 5, value: "#ffa500" },
-      { id: 6, value: "#808080" }
+      { id: 1, value: "#009A44" },
+      { id: 2, value: "#BC204B" },
+      { id: 3, value: "#F68D2E" },
+      { id: 4, value: "#EAAA00" },
+      { id: 5, value: "#43B0AA" },
+      { id: 6, value: "#C6007E" }
     ];
+  }
+
+  static getListColorInfoCard(inPercent) {
+    let percentReadyColor = "#009A44";
+
+    if (inPercent >= 0 && inPercent <= 10) {
+      percentReadyColor = "#BC204B";
+    } else if (inPercent >= 11 && inPercent <= 25) {
+      percentReadyColor = "#F68D2E";
+    } else if (inPercent >= 26 && inPercent <= 50) {
+      percentReadyColor = "#EAAA00";
+    } else if (inPercent >= 51 && inPercent <= 75) {
+      percentReadyColor = "#43B0AA";
+    }
+
+    return percentReadyColor;
   }
 
   //Возврат значения параметра по номеру в списке
   static getValueFromNum(listOfParam, inNumOfColor) {
     const elemColor = listOfParam.find(x => x.id === inNumOfColor);
-    const goodElemColor = elemColor || listOfParam[0];
+    const goodElemColor = elemColor || { value: "#d9d9d9" };
     return goodElemColor.value;
+  }
+
+  //В зависимости от типа объекта и параметра индикатора готовности инфокарточки, задаем цвет
+  static getColorFromIndicateInfoCard(startColor, inObject, paramIndicate) {
+    let indicateValue = 0;
+    const { chartData } = inObject;
+
+    if (chartData.isMenuInfo && paramIndicate) {
+      indicateValue = chartData[paramIndicate];
+    }
+
+    const indicateColor =
+      indicateValue === 0
+        ? startColor
+        : this.getListColorInfoCard(indicateValue);
+
+    return indicateColor;
   }
 
   //Оборачиваем запрос в лоадер и записываем ошибку в консоль
@@ -28,20 +61,6 @@ export default class AddExtension {
       response => this._setRequestProcessing(commit, goodCallBack, response),
       reject => this._setRequestProcessing(commit, badCallBack, reject.response)
     );
-  }
-
-  //Выводим ошибку в уведомлялку, скрываем чз некоторе время
-  static setErrorNotification(commit, inErrorText) {
-    commit("setStateMapValue", { field: "activeSnack", value: true });
-    commit("setStateMapValue", { field: "activeSnackError", value: true });
-    commit("setStateMapValue", {
-      field: "activeSnackTitle",
-      value: inErrorText
-    });
-
-    setTimeout(() => {
-      commit("setStateMapValue", { field: "activeSnack", value: false });
-    }, 2000);
   }
 
   //Если обработчик ошибок не проставлен - просто заносим ошибку в консоль и отключаем лоадер
@@ -83,16 +102,18 @@ export default class AddExtension {
     }
     //Смотрим на geometry
     if (!typeDraw) {
-      if (draw.geometry.type === "LineString") {
+      if (draw?.geometry?.type === "LineString") {
         typeDraw = "line";
-      } else typeDraw = draw.geometry.type.toLowerCase();
+      } else typeDraw = draw?.geometry?.type.toLowerCase();
     }
     //Смотрим на наличие свойств карточки меню
     if (draw.chartData?.isMenuInfo) {
       typeDraw = "info";
     }
 
-    itemDrawName = listOfInst.find(x => x.name === typeDraw);
+    itemDrawName = listOfInst.find(
+      x => x.type === typeDraw || x.name === typeDraw
+    );
     return itemDrawName;
   }
 
@@ -212,5 +233,16 @@ export default class AddExtension {
       }
     ];
     return table;
+  }
+
+  //Тянем коллекцию инцидентов из общего объекта элементов карты
+  static getIncTableDataFromMapObjList(inMapObjList) {
+    const { mapObjListServer } = inMapObjList;
+    if (!mapObjListServer) return;
+
+    const mapIncList = mapObjListServer.filter(item => item.measurItem === 9);
+    const mapIncDataList = mapIncList.map(item => item?.chartData);
+
+    return mapIncDataList;
   }
 }
