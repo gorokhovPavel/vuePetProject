@@ -1,4 +1,5 @@
-import mapboxDraw from "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw";
+// eslint-disable-next-line no-unused-vars
+import mapboxDraw from "@mapbox/mapbox-gl-draw/js";
 import html2canvas from "html2canvas";
 import { addExtension, buildChart } from "../utils";
 
@@ -51,7 +52,7 @@ export default class PageGenerator {
     ];
   }
   //Получаем страницу "карта обьектов"
-  static async getMainMapPage(snapshotMap, mapObjectTxt) {
+  static async getMainMapPage(snapshotMap, mapObjectTxt, mapboxDrawLocal) {
     return new Promise(function(resolve) {
       try {
         const pages = [];
@@ -70,7 +71,7 @@ export default class PageGenerator {
           .build()
           .format("a4")
           // eslint-disable-next-line no-undef
-          .print(snapshotMap, mapboxDraw)
+          .print(snapshotMap, mapboxDrawLocal)
           .then(url => {
             const img = [
               {
