@@ -197,7 +197,11 @@ export default class Instrument {
           featureId: featureId
         });
 
-        this.setAddPopUp(mapObjElem);
+        const { isMenuInfo } = mapObjElem[0]?.chartData;
+
+        if (isMenuInfo) {
+          this.setAddPopUp(mapObjElem);
+        }
       }
     }
   }
@@ -470,9 +474,9 @@ export default class Instrument {
   //Добавляем полученные данные к текущему объекту, обновляем общую коллекцию
   setDataHeightsToDraw(inResMathData, inDrawSel) {
     if (inResMathData) {
-      let objListServer = this.stateData.mapObjListServer || [];
-      inDrawSel.measurItem = this.stateData.currentInstrument;
       inDrawSel.chartData = inResMathData;
+      inDrawSel.measurItem = this.stateData.currentInstrument;
+      let objListServer = this.stateData.mapObjListServer || [];
 
       const existElemIndex = objListServer.findIndex(
         item => item.id === inDrawSel.id
@@ -497,24 +501,57 @@ export default class Instrument {
     }
   }
 
+  //Перерисовка объектов карты с совместной перезагрузкой mapBoxDraw
+  setMapBoxDrawOnCurrentObj() {
+    this.stateData.mapObjListDraw.deleteAll();
+
+    this.stateData.mapObjListDraw.add({
+      type: "FeatureCollection",
+      features: this.getFilteredMapObjectForDraw(null)
+    });
+
+    this.setImagesForDrawObjects(null);
+  }
+
+  //Вывод отфильтрованной коллекции объектов карты
+  getFilteredMapObjectForDraw(inMapDrawObjId) {
+    const {
+      isMarkersActive,
+      isMeasureActive,
+      isInfoCardsActive
+    } = this.stateData;
+
+    const featureDrawList = this.getFetureList(inMapDrawObjId);
+
+    return featureDrawList.filter(item => {
+      const drawType = item?.geometry?.type;
+      return (
+        (drawType === "Point" && isMarkersActive) ||
+        (drawType === "LineString" && isMeasureActive) ||
+        (drawType === "Polygon" &&
+          ((item?.chartData?.isMenuInfo && isInfoCardsActive) ||
+            (!item?.chartData?.isMenuInfo && isMeasureActive)))
+      );
+    });
+  }
+
   //Замена дефолтовых маркеров на более красивые
   setImagesForDrawObjects(inDrawId) {
     const inMapObj = this.stateData.curMap;
+    if (!inMapObj) return;
+
     this._deleteSorceAndLayersFromMap(inDrawId, null);
-    const inIsMarkersActive = this.stateData.isMarkersActive;
-    const inIsMeasureActive = this.stateData.isMeasureActive;
+
     const inTblMapObj = this.stateData.mapObjListTable;
     const inListOfColors = addExtension.getListColor();
-    const featureDrawList = this.getFetureList(inDrawId);
+    const featureDrawListFiltered = this.getFilteredMapObjectForDraw(inDrawId);
 
-    if (!featureDrawList || !inMapObj) return;
-
-    featureDrawList.forEach(item => {
-      if (item) {
-        let imgForDraw = "";
-        let drawType = item.geometry.type;
-        let drawCoord = item.geometry.coordinates;
+    featureDrawListFiltered.forEach(item => {
+      if (item || item?.geometry) {
+        const drawType = item?.geometry?.type;
+        const drawCoord = item?.geometry?.coordinates;
         let drawTypeView = item?.properties?.type || item?.geometry?.type;
+        let imgForDraw = "";
 
         let isReport =
           item.properties?.isReport !== null
@@ -545,12 +582,7 @@ export default class Instrument {
           this.stateData.infoCardFinalReadyParam
         );
 
-        if (
-          drawType !== "LineString" &&
-          drawType !== "Polygon" &&
-          drawTypeView &&
-          inIsMarkersActive
-        ) {
+        if (drawType === "Point" && drawTypeView) {
           drawTypeView = drawTypeView === "incident" ? "point" : drawTypeView;
           const drawPng = `${drawTypeView}Draw.png`.toLowerCase();
           imgForDraw = require(`@/content/images/${drawPng}`);
@@ -581,7 +613,7 @@ export default class Instrument {
             });
           });
         } else {
-          if (isReport && inIsMeasureActive) {
+          if (isReport) {
             if (drawType === "LineString") {
               inMapObj.addLayer({
                 id: `lineObj${item.id}`,
@@ -607,7 +639,8 @@ export default class Instrument {
                   "line-width": 5
                 }
               });
-            } else {
+            } else if (drawType === "Polygon") {
+              //строим, если активный режим инфокарточек или простых объектов измерения
               inMapObj.addLayer({
                 id: `polygonObj${item.id}`,
                 type: "fill",
@@ -633,29 +666,6 @@ export default class Instrument {
         }
       }
     });
-  }
-
-  //Меняем видимость объектов класса MapboxDraw на карте
-  setToggleDrawObjFromMap(isShow) {
-    this._deleteAllPopup();
-
-    const inMapObj = this.stateData.curMap;
-    const mapStyles = inMapObj.getStyle();
-    const circleLayerArr = mapStyles.layers.filter(i => {
-      if (i.source) {
-        return i.source.match(/mapbox-gl-draw*/);
-      } else {
-        return null;
-      }
-    });
-    circleLayerArr.forEach(x =>
-      inMapObj.setLayoutProperty(
-        x.id,
-        "visibility",
-        isShow ? "visible" : "none"
-      )
-    );
-    this._deleteAllPopup();
   }
 
   //Удаление всех нарисованных меток
