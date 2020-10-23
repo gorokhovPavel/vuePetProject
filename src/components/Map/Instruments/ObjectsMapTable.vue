@@ -5,10 +5,15 @@
       class="tableMapPos absolute whiteBack radius border point"
     >
       <div class="tableMapMain">
-        <div class="flex justBetween buttonContainer">
+        <div class="flex justBetween">
           <a-button @click="setActionMapObj(false)" icon="rollback"></a-button>
-          <a-button @click="setActionMapObj(true)" icon="save"></a-button>
+          <a-button
+            icon="save"
+            class="allSaveButton"
+            @click="setActionMapObj(true)"
+          ></a-button>
           <a-input-search
+            class="searchInput"
             allowClear
             :placeholder="$lang.messages.filterText"
             v-model="searchQuery"
@@ -29,8 +34,8 @@
     <a-button
       v-show="!getShowingObjects.showTableMap"
       class="absolute buttonTableMapPos"
-      @click="setShowMode('showTableMap')"
       icon="menu-fold"
+      @click="setShowMode('showTableMap')"
     ></a-button>
   </div>
 </template>
@@ -88,19 +93,15 @@ export default {
     ...mapMutations(["setStateMapValue", "setShowMode"]),
     ...mapActions(["setActionModal"]),
     setActionMapObj(isSaveAction) {
-      this.setStateMapValue({
-        field: "activeConfrmDialogAction",
-        value: {
-          nameAction: "setConfirmActionMapObj",
-          dataAction: isSaveAction
-        }
-      });
-
       this.modalSureSaveName = isSaveAction
         ? this.$lang.messages.sureSaveMapObj
         : this.$lang.messages.sureCancelMapObj;
 
-      this.setActionModal(this.modalSureSaveName);
+      this.setActionModal({
+        titleAction: this.modalSureSaveName,
+        nameAction: "setConfirmActionMapObj",
+        dataAction: isSaveAction
+      });
     }
   }
 };
@@ -115,20 +116,17 @@ export default {
   right: 4.5%;
 }
 .tableMapPos > .tableMapMain {
-  min-width: 350px;
-  max-width: 500px;
+  width: 27em;
   height: calc(76vh);
   overflow-y: auto;
 
-  padding: 10px;
+  padding: 10px 10px 5px;
 }
-.buttonContainer > button:not(:first-child) {
-  margin: 0 5px;
-}
-.buttonContainer > button:last-child {
+.allSaveButton {
   margin-left: 5px;
 }
-.buttonContainer > .ant-input-search {
-  width: auto;
+.searchInput.searchInput {
+  margin: 0 5px;
+  flex: 1;
 }
 </style>
