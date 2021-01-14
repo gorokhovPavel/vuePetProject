@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <link rel="stylesheet" href="/assets/styles/index.css">
+  <title>Meetup Page Draft</title>
+</head>
+<body>
+<div id="app">
+  <div v-if="processedMeetup">
+    <div class="meetup-cover"
+         :style="processedMeetup.meetupImageUrl ? `--bg-url: url('${processedMeetup.meetupImageUrl}')` : ''"
+    >
+      <h1 class="meetup-cover__title">{{ processedMeetup.title }}</h1>
+    </div>
+
+    <div class="container">
+      <div class="meetup">
+        <div class="meetup__content">
+          <h3>Описание</h3>
+          <p class="meetup-description">{{ processedMeetup.description }}</p>
+
+          <h3>Программа</h3>
+          <div class="meetup-agenda" v-for="(agenda, index) in processedMeetup.agenda" :key="meetup.agenda.id">
+            <div class="meetup-agenda__item">
+              <div class="meetup-agenda__item-col">
+                <img class="icon" alt="icon" v-bind:src=`/assets/icons/icon-${agenda.defaultIcon}.svg`>
+              </div>
+              <div class="meetup-agenda__item-col" v-if="agenda.startsAt || agenda.endsAt">{{agenda.startsAt}} - {{agenda.endsAt}}</div>
+
+              <div class="meetup-agenda__item-col">
+                <h5 class="meetup-agenda__title" v-if="agenda.title"> {{agenda.title}}</h5>
+                <h5 class="meetup-agenda__title" v-else>{{agenda.defaultTitle}}</h5>
+                <p v-if="agenda.type === 'talk' " ><span v-if="agenda.speaker">{{ agenda.speaker }}</span><span v-if="agenda.speaker" class="meetup-agenda__dot"></span><span class="meetup-agenda__lang" v-if="agenda.language">{{agenda.language}}</span></p>
+                <p v-if="agenda.description">{{agenda.description}}</p>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <div class="meetup__aside">
+          <ul class="info-list">
+            <li>
+              <img class="icon info-list__icon" alt="icon" src="/assets/icons/icon-user.svg"/>
+              {{ processedMeetup.organizer }}
+            </li>
+            <li>
+              <img class="icon info-list__icon" alt="icon" src="/assets/icons/icon-map.svg"/>
+              {{ processedMeetup.place }}
+            </li>
+            <li>
+              <img class="icon info-list__icon" alt="icon" src="/assets/icons/icon-cal-lg.svg"/>
+              <time datetime="2020-02-31">{{ processedMeetup.date }}</time>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="script.js"></script>
+</body>
+</html>
