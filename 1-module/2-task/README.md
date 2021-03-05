@@ -25,7 +25,3 @@
 - Локализация даты:
     - https://learn.javascript.ru/intl
     - https://developer.mozilla.org/ru/docs/Web/JavaScript/Reference/Global_Objects/Date/toLocaleString
-
----
-
-**- Для решения отредактируйте файлы `index.html` и `script.js`**
