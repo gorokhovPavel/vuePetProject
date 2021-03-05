@@ -6,6 +6,3 @@
 
 ![Example](./example.gif)
 
----
-
-**- Для решения задачи отредактируйте файлы `index.html` и `script.js`.**
