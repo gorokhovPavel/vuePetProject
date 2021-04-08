@@ -6,7 +6,6 @@
 
 export default {
   name: 'CounterButton',
-
   props: {
     count: {
       default: 0,
