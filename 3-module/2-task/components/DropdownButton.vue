@@ -1,5 +1,6 @@
 <template>
   <div class="dropdown" :class="{'show': isShow}">
+  
     <button
       type="button"
       :class="{
@@ -8,14 +9,11 @@
       @click="isShow=!isShow"
       class="button dropdown__toggle"
     >
-
       <app-icon v-if="computedOption && computedOption.icon" :icon="computedOption.icon"/>
-
       <p v-if="computedOption">{{ title }} - {{computedOption.text}}</p>
       <p v-else>{{ title }}</p>
-
     </button>
-
+    
     <div class="dropdown__menu"
       :class="{'show': isShow}">
       <button  v-for="option in options" :key="option.value"
