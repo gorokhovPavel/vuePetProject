@@ -28,9 +28,7 @@ export default {
   },
 
   methods: {
-
     showMessage(className, message) {
-
       let icons = {
         success: 'check-circle',
         error: 'alert-circle'
