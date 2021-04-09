@@ -93,15 +93,12 @@ export default {
 .toast + .toast {
   margin-top: 20px;
 }
-
 .toast > .icon {
   margin-right: 12px;
 }
-
 .toast.toast_success {
   color: var(--green);
 }
-
 .toast.toast_error {
   color: var(--red);
 }
