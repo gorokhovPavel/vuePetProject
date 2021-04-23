@@ -36,11 +36,9 @@ export default {
     setEmail(event) {
       this.email = event.target.value
     },
-
     setPassword(event) {
       this.password = event.target.value
     },
-
     doLogin() {
       if (this.email === '' || this.email == null) {
         alert('Требуется ввести Email');
