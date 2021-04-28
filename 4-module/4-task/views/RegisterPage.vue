@@ -54,7 +54,6 @@ export default {
     setEmail(event) {
       this.email = event.target.value
     },
-
     doRegister() {
       if (this.email === '' || this.email == null) {
         alert('Требуется ввести Email');
