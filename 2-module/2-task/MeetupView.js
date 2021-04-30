@@ -6,7 +6,6 @@ import { getMeetupCoverLink } from './data.js';
 
 export const MeetupView = {
   name: 'MeetupView',
-
   template: `
     <div>
       <!-- meetup-cover -->
