@@ -15,7 +15,7 @@ export function getMeetupCoverLink(meetup) {
 
 /**
  * Получает данные митапа по его ID с API
- * @param {Number} id
+ * @param id
  * @return {Promise}
  */
 export async function fetchMeetup(id) {
