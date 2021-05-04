@@ -19,7 +19,7 @@ export const MeetupAgenda = {
   props: {
     agenda: {
       type: Array,
-      required: true,
+      required: false,
     }
   },
 
