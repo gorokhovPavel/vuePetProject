@@ -12,7 +12,6 @@ export const MeetupAgenda = {
       ></meetup-agenda-item>
     </div>`,
 
-
   components: {
     MeetupAgendaItem
   },
