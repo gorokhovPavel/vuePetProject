@@ -7,7 +7,7 @@ export const MeetupAgenda = {
     <div class="meetup-agenda">
       <meetup-agenda-item
         v-for="agendaItem in agenda"
-        :key="agenda.id"
+        :key="agenda?.id"
         :agendaItem="agendaItem"
       ></meetup-agenda-item>
     </div>`,
