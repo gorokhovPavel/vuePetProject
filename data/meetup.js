@@ -47,7 +47,7 @@ export default {
     "startsAt": "10:40",
     "endsAt": "11:00",
     "type": "talk",
-    "title": "All you need is <s>love</s> Apollo Client",
+    "title": "All you need is Apollo Client",
     "description": "While we usually mention Apollo Client only in connection with GraphQL, it can do a lot more things to your Vue application such as accessing REST endpoints and replacing Vuex in managing application state! In this talk, I will cover these advanced cases while also explaining the basics of using Apollo with GraphQL endpoints",
     "speaker": "Natalia Tepluhina",
     "language": "EN"
