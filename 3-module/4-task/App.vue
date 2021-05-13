@@ -6,7 +6,7 @@
       </div>
     </form-group>
 
-    <hr />
+    <hr/>
 
     <form-group label="with label">
       <div class="input-group">
