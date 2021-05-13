@@ -1,6 +1,5 @@
 <template>
   <div id="app" class="page container">
-
     <p>selectedType = {{ selectedType }}</p>
     <p>
       <button @click="selectedType = 'registration'">Set registration</button>
@@ -12,8 +11,6 @@
         title="Событие"
       />
     </p>
-
-
     <p>selectedLang = {{ selectedLang }}</p>
     <p>
       <dropdown-button
