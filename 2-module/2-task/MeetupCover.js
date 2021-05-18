@@ -10,7 +10,6 @@ export const MeetupCover = {
 
   name: 'MeetupCover',
 
-  // Пропсы
   props: {
     link: {
       type: String,
