@@ -39,7 +39,6 @@
 
 export default {
   name: 'RegisterPage',
-
   data() {
     return {
       fullName: null,
@@ -49,7 +48,6 @@ export default {
       condition: null
     }
   },
-
   methods: {
     setEmail(event) {
       this.email = event.target.value
