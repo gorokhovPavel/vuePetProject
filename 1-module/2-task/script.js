@@ -14,7 +14,7 @@ export const app = new Vue({
         registration: 'Регистрация',
         opening: 'Открытие',
         break: 'Перерыв',
-        coffee: 'Coffee Break',
+        coffee: 'Coffee',
         closing: 'Закрытие',
         afterparty: 'Afterparty',
         talk: 'Доклад',
