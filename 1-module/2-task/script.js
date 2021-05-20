@@ -43,7 +43,7 @@ export const app = new Vue({
     processedMeetup() {
       if (this.meetup) {
         return Object.assign({}, this.meetup, {
-          date: new Date(this.meetup.date).toLocaleString(navigator.language, {
+          date: new Date(this.meetup.date)?.toLocaleString(navigator.language, {
             year: 'numeric',
             month: 'long',
             day: 'numeric'
