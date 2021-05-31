@@ -24,7 +24,7 @@ export const router = new VueRouter({
     },
     {
       path: '*',
-      redirect: '/page-unknown'
+      redirect: '/unknown'
     },
   ],
 });
