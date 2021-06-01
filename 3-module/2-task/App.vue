@@ -23,6 +23,7 @@
 </template>
 
 <script>
+
 import DropdownButton from './components/DropdownButton';
 
 const agendaIconMap = {
