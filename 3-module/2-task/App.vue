@@ -48,7 +48,7 @@ const agendaItemTypes = [
   },
   {
     value: 'break',
-    text: 'Перерыв',
+    text: 'перерыв',
   },
   {
     value: 'coffee',
