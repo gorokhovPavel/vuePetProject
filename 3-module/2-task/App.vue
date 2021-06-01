@@ -94,6 +94,6 @@ export default {
 
 <style scoped>
 p {
-  margin: 1rem auto;
+  margin: 2rem auto;
 }
 </style>
