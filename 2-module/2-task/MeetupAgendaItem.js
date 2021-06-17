@@ -1,5 +1,6 @@
 import { agendaItemTitles, agendaItemIcons } from './data.js';
 
+
 export const MeetupAgendaItem = {
   name: 'MeetupAgendaItem',
   template: `<div class="meetup-agenda__item">
