@@ -23,7 +23,7 @@ export const MeetupAgendaItem = {
 
   props: {
     agendaItem: {
-      required: true,
+      required: false,
       type: Object
     }
   },
