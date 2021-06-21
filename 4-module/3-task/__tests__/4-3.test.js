@@ -7,7 +7,7 @@ import PageA from '../views/PageA';
 import PageB from '../views/PageB';
 
 describe('4-module-3-task', () => {
-  describe('404 - NotFound', () => {
+  describe('404 - No Found', () => {
     
     it('NotFoundPage должен отображаться, когда страница не найдена', async () => {
       const localVue = createLocalVue();
