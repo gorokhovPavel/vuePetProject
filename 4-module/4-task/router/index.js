@@ -15,6 +15,7 @@ export const router = new VueRouter({
       path: '/',
       component: IndexPage,
     },
+    
     {
       path: '/login',
       component: LoginPage,
