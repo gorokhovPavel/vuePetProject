@@ -20,6 +20,7 @@ export const router = new VueRouter({
       path: '/login',
       component: LoginPage,
     },
+    
     {
       path: '/register',
       component: RegisterPage,
