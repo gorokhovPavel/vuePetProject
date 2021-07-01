@@ -4,6 +4,7 @@ const { CounterButton } = require(getSolutionPath('CounterButton'));
 
 describe('2-module-1-task', () => {
   describe('CounterButton', () => {
+
     it('Компонент должен рендерить кнопку с текстом count', () => {
       const wrapper = mount(CounterButton, {
         propsData: { count: 42 },
