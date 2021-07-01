@@ -25,6 +25,7 @@ describe('2-module-1-task', () => {
       const button = wrapper.find('button');
 
       await button.trigger('click');
+
       expect(wrapper.emitted().increment).toBeTruthy();
       expect(wrapper.emitted().increment.length).toBe(1);
       expect(wrapper.emitted().increment[0]).toEqual([2]);
