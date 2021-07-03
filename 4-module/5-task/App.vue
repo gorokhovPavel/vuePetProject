@@ -14,6 +14,7 @@
 <script>
 import BaseLayout from './components/BaseLayout';
 export default {
+
   name: 'App',
   components: { BaseLayout },
   created() {
