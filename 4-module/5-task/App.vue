@@ -19,6 +19,7 @@ export default {
   name: 'App',
   components: { BaseLayout },
   created() {
+  
     this.$router.replace('/');
   },
 };
