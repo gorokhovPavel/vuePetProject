@@ -13,6 +13,7 @@
 
 <script>
 import BaseLayout from './components/BaseLayout';
+
 export default {
 
   name: 'App',
