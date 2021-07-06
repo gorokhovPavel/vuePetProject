@@ -7,10 +7,10 @@ describe('2-module-1-task', () => {
 
     it('Компонент должен рендерить кнопку с текстом count', () => {
       const wrapper = mount(CounterButton, {
-        propsData: { count: 42 },
+        propsData: { count: 40 },
       });
       expect(wrapper.find('button').exists()).toBe(true);
-      expect(wrapper.text()).toBe('42');
+      expect(wrapper.text()).toBe('40');
     });
 
     it('Компонент должен иметь count 0 по умолчанию', () => {
