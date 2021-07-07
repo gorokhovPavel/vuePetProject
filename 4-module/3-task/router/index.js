@@ -10,6 +10,10 @@ export const router = new VueRouter({
   mode: 'history',
   base: process.env.BASE_URL,
   routes: [
+     {
+      path: '*',
+      redirect: '/unknown'
+    },
     {
       path: '/page-b',
       component: PageB,
@@ -17,11 +21,6 @@ export const router = new VueRouter({
      {
       path: '/page-a',
       component: PageA,
-    },
-  
-    {
-      path: '*',
-      redirect: '/unknown'
     },
      {
       path: '/page-unknown',
