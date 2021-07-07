@@ -11,12 +11,12 @@ export const router = new VueRouter({
   base: process.env.BASE_URL,
   routes: [
     {
-      path: '/page-a',
-      component: PageA,
-    },
-    {
       path: '/page-b',
       component: PageB,
+    },
+     {
+      path: '/page-a',
+      component: PageA,
     },
     {
       path: '/page-unknown',
