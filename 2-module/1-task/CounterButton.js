@@ -7,7 +7,6 @@ export const CounterButton = {
       type: Number
     }
   },
-
   model: {
     prop: 'count',
     event: 'increment'
