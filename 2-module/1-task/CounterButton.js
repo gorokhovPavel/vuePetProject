@@ -1,6 +1,5 @@
 export const CounterButton = {
   template: '<button @click="increment" type="button">{{count}}</button>',
-
   name: 'CounterButton',
 
   props: {
