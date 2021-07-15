@@ -11,7 +11,6 @@ export const CounterButton = {
     prop: 'count',
     event: 'increment'
   },
-
   methods: {
     increment() {
       this.$emit('increment', this.count + 1);
