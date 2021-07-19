@@ -2,6 +2,7 @@ const { shallowMount, mount } = require('@vue/test-utils');
 const { getSolutionPath } = require('taskbook-test-utils');
 const DropdownButton = require(getSolutionPath('components/DropdownButton'))
   .default;
+
 const AppIcon = require('../components/AppIcon').default;
 
 describe('3-module-2-task', () => {
