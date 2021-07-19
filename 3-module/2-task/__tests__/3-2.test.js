@@ -28,7 +28,7 @@ describe('3-module-2-task', () => {
       expect(wrapper.vm.$options.props.options.required).toBeTruthy();
     });
 
-    it('Кнопка должна иметь текст с заголовком ', () => {
+    it('Кнопка должна иметь текст с заголовком из параметра', () => {
       const wrapper = shallowMount(DropdownButton, {
         propsData: { options, title },
       });
