@@ -1,5 +1,7 @@
 <template>
+
   <p>MeetupsPage</p>
+  
 </template>
 
 <script>
