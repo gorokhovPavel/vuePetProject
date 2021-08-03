@@ -9,7 +9,7 @@ export default {
   "agenda": [{
     "id": 35,
     "startsAt": "07:30",
-    "endsAt": "09:30",
+    "endsAt": "09:00",
     "type": "registration",
     "title": null,
     "description": null,
