@@ -22,6 +22,7 @@ const iconMap = {
   tv: require('../assets/icons/icon-tv.svg'),
   user: require('../assets/icons/icon-user.svg'),
 };
+
 export default {
   name: 'AppIcon',
 
