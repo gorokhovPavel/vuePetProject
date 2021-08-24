@@ -25,7 +25,6 @@ const iconMap = {
 
 export default {
   name: 'AppIcon',
-
   props: {
     icon: {
       type: String,
