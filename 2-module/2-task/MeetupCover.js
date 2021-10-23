@@ -1,6 +1,5 @@
 
 export const MeetupCover = {
-
   template: `<div
     :style="link ? \`--bg-url: url('\${link}')\` : \`\${link}\`"
     class="meetup-cover"
