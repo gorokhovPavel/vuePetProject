@@ -4,6 +4,7 @@ export const MeetupInfo = {
         <img class="icon info-list__icon" alt="icon" src="/assets/icons/icon-user.svg" />
         {{meetup.organizer}}
       </li>
+      
       <li>
         <img class="icon info-list__icon" alt="icon" src="/assets/icons/icon-map.svg" />
         {{meetup.place}}
