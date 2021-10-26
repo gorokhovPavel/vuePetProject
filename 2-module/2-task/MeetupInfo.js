@@ -18,15 +18,13 @@ export const MeetupInfo = {
 
   name: 'MeetupInfo',
 
-  // Пропсы
   props: {
     meetup: {
       type: Object,
       required: true,
     }
   },
-
-  // computed
+  
   computed: {
     processedMeetup() {
       return Object.assign({}, this.meetup, {
