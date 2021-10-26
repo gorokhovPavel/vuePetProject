@@ -9,6 +9,7 @@ export const MeetupInfo = {
         <img class="icon info-list__icon" alt="icon" src="/assets/icons/icon-map.svg" />
         {{meetup.place}}
       </li>
+      
       <li>
         <img class="icon info-list__icon" alt="icon" src="/assets/icons/icon-cal-lg.svg" />
         <time datetime="2020-01-01">{{processedMeetup.date}}</time>
